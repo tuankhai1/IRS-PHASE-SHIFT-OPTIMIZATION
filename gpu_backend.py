@@ -17,7 +17,7 @@ try:
         # Suppress the specific warning about CUDA_PATH not being found
         # so it doesn't spam the console if CuPy is installed but CUDA isn't.
         warnings.filterwarnings("ignore", message=".*CUDA path could not be detected.*")
-        pass # cupy import removed
+        import cupy as cp
     # Forced to False to use CPU processing only
     GPU_AVAILABLE = False
 except ImportError:

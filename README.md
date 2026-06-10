@@ -1,60 +1,95 @@
-# IRS Phase Shift Optimization
+<div align="center">
+  <h1>📡 IRS Phase Shift Optimization</h1>
+  <p><strong>Maximizing Spectrum Efficiency in Intelligent Reflecting Surface-Aided Wireless Networks</strong></p>
+</div>
 
-## Introduction
-This project simulates and optimizes the achievable spectrum efficiency (rate) of an Intelligent Reflecting Surface (IRS)-aided wireless communication system. It investigates the impact of realistic phase shift models—where the reflection amplitude is coupled with the phase shift—and compares various optimization algorithms. 
+<br />
 
-The framework evaluates system performance across multiple scenarios, taking into account continuous versus discrete phase shifts, varying distances between the Access Point (AP) and the user, and varying numbers of reflecting elements.
+## 📖 Introduction
+Intelligent Reflecting Surfaces (IRS) have emerged as a disruptive technology capable of smartly reconfiguring the wireless propagation environment. By intelligently tuning the phase shifts of massive numbers of low-cost passive reflecting elements, an IRS can significantly enhance signal quality at the receiver. 
 
-## Reference Paper
-This project implements the system models, channel models, and optimization schemes from recent literature on practical IRS phase shift modeling. It demonstrates the differences between an "ideal" reflection model (constant amplitude) and a "practical" model (phase-dependent amplitude).
+This repository provides a comprehensive simulation framework to optimize the **achievable rate (spectrum efficiency)** of an IRS-aided wireless communication system. It features a deep comparative analysis between **ideal** reflection models and **practical** reflection models (where the reflection amplitude is fundamentally coupled with the phase shift).
 
-## The Approach
-To maximize the achievable rate, the optimization of the IRS phase shifts is modeled as a non-convex optimization problem. We solve this using multiple algorithmic approaches:
-1. **Alternating Optimization (AO)**: A highly optimized, coordinate-descent-based baseline leveraging Numba JIT compilation for maximum CPU performance.
-2. **Particle Swarm Optimization (PSO)**: A population-based meta-heuristic algorithm using multi-strategy initialization, ring topologies, and constriction factors for robust multi-modal search.
-3. **Covariance Matrix Adaptation Evolution Strategy (CMA-ES)**: An advanced evolutionary strategy that adaptively updates the search distribution.
+## 📄 Reference Paper
+The models and optimization schemes in this repository are inspired by state-of-the-art literature on practical IRS phase shift modeling. The codebase is designed to reproduce the findings that ignoring the amplitude-phase coupling in IRS elements leads to sub-optimal designs, and that specialized algorithms are required to unlock the true potential of practical IRS hardware.
 
-*Note: Both PSO and CMA-ES support optional CuPy-based GPU acceleration via `gpu_backend.py` for high-throughput population evaluation.*
+## 🚀 The Approach
+Optimizing the phase shifts of an IRS is a highly non-convex problem. To tackle this, we implement and benchmark three distinct algorithmic approaches:
 
-## Roadmap (Repository Structure)
+1. **Alternating Optimization (AO) [Baseline]**
+   A rigorous coordinate-descent approach leveraging Numba JIT compilation for blazing-fast CPU execution.
+2. **Particle Swarm Optimization (PSO)**
+   A meta-heuristic algorithm utilizing multi-strategy initialization, ring topologies, and constriction factors for robust multi-modal search space exploration.
+3. **Covariance Matrix Adaptation Evolution Strategy (CMA-ES)**
+   An advanced evolutionary strategy that adaptively updates its search distribution to find the global optimum.
 
-- `main.py`: The main entry point. Runs all simulation scenarios and generates figures.
-- `simulation.py`: Handles multiprocessing and parallelizing independent channel realizations across CPU cores.
-- `objective.py`: Defines the objective functions, including effective channel gain and achievable rate.
-- `channel_model.py`: Generates the direct (AP-user) and reflected (AP-IRS-user) fading channels.
-- `phase_shift_model.py`: Mathematical models for both ideal and practical phase shifts.
-- `numba_kernels.py`: JIT-compiled kernels to accelerate the inner loops of the AO algorithm.
-- `gpu_backend.py`: CuPy-based GPU acceleration backend for batch processing meta-heuristic algorithms.
-- `algorithms/`:
-  - `ao.py`: Alternating Optimization algorithm.
-  - `pso.py`: Particle Swarm Optimization algorithm.
-  - `cmaes.py`: CMA-ES algorithm.
+## 📊 Achieved Results
 
-## How to Apply (Usage)
+Here are the simulation results demonstrating the performance of the various algorithms under different system parameters:
+
+### 1. Achievable Rate vs. AP-User Distance
+Demonstrates how the system performs as the distance between the Access Point and the user increases.
+<p align="center">
+  <img src="assets/fig5_rate_vs_distance.png" alt="Rate vs Distance" width="600"/>
+</p>
+
+### 2. Achievable Rate vs. Number of Reflecting Elements (N)
+Illustrates the scaling behavior of the achievable rate as more IRS elements are added.
+<p align="center">
+  <img src="assets/fig6_rate_vs_N.png" alt="Rate vs N" width="600"/>
+</p>
+
+### 3. Impact of Discrete Phase Shifts
+Evaluates the performance degradation when the IRS is constrained to low-resolution discrete phase shifts (e.g., 1-bit, 2-bit, or 3-bit).
+<p align="center">
+  <img src="assets/fig7_discrete_phases.png" alt="Discrete Phase Shifts" width="600"/>
+</p>
+
+## 🗺️ Codebase Analysis & Architecture
+
+![Codebase Analysis](assets/codebase_analysis.png)
+*(Note: Please ensure your codebase analysis picture is uploaded to the `assets` folder as `codebase_analysis.png` to render here).*
+
+The repository is structured as follows to ensure modularity and scalability:
+
+- **`main.py`**: The primary execution script. Routes the simulations for all figures.
+- **`simulation.py`**: The engine driving the simulations. Features built-in multiprocessing to parallelize independent channel realizations across multiple CPU cores.
+- **`channel_model.py` / `phase_shift_model.py`**: Core mathematical definitions for the fading channels and the IRS reflection physics.
+- **`algorithms/`**: Contains the implementations for the optimizers (`ao.py`, `pso.py`, `cmaes.py`).
+- **`numba_kernels.py`**: JIT-compiled C-level bypasses for Python's standard execution, drastically speeding up the AO algorithm.
+- **`gpu_backend.py`**: A CuPy-driven backend for hardware-accelerated batch processing of meta-heuristic populations.
+
+## 💻 How to Apply (Usage Guide)
 
 ### Prerequisites
-Make sure you have Python 3.8+ installed. Install the required dependencies:
+Ensure you have Python 3.8 or higher installed. Clone this repository and install the dependencies:
 ```bash
+git clone https://github.com/YourUsername/irs-phase-shift-optimization.git
+cd irs-phase-shift-optimization
 pip install numpy matplotlib numba scipy
 ```
-*(Optional: Install `cupy` if you want to use the GPU backend for PSO/CMA-ES).*
+*(Optional: Install `cupy` if you intend to utilize the GPU backend).*
 
-### Running Simulations
-You can run the full suite of simulations (1000 channel realizations) by simply executing:
+### Running the Simulations
+To run the full suite of simulations (1000 channel realizations per scenario):
 ```bash
 python main.py
 ```
 
-For a quick test to verify everything is working (runs only 20 realizations):
+To run a rapid test cycle (useful for verifying dependencies, runs only 20 realizations):
 ```bash
 python main.py --quick
 ```
 
-To run a specific figure from the simulation results:
+To run a specific simulation figure independently:
 ```bash
-python main.py --fig 5  # Fig. 5: Rate vs. AP-user horizontal distance
-python main.py --fig 6  # Fig. 6: Rate vs. number of reflecting elements
-python main.py --fig 7  # Fig. 7: Rate vs. distance with discrete phase shifts
+python main.py --fig 5  # Fig. 5: Rate vs. Distance
+python main.py --fig 6  # Fig. 6: Rate vs. N
+python main.py --fig 7  # Fig. 7: Discrete phase shifts
 ```
 
-Outputs will be saved as numpy arrays (`.npz`) and plotted figures (`.png`) in the generated `results/` directory.
+### Outputs
+All simulation results are automatically serialized as `.npz` files and plotted as `.png` files inside the `results/` directory.
+
+---
+*Created for the advancement of Intelligent Reflecting Surface research.*

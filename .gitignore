@@ -1,0 +1,8 @@
+# Python caches
+__pycache__/
+*.py[cod]
+
+# Output files
+results/
+results/*.npz
+results/*.png
