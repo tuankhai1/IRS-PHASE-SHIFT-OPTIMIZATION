@@ -87,8 +87,8 @@ The repository is structured as follows to ensure modularity and scalability:
 ### Prerequisites
 Ensure you have Python 3.8 or higher installed. Clone this repository and install the dependencies:
 ```bash
-git clone https://github.com/YourUsername/irs-phase-shift-optimization.git
-cd irs-phase-shift-optimization
+git clone https://github.com/tuankhai1/IRS-PHASE-SHIFT-OPTIMIZATION.git
+cd IRS-PHASE-SHIFT-OPTIMIZATION
 pip install numpy matplotlib numba scipy
 ```
 *(Optional: Install `cupy` if you intend to utilize the GPU backend).*
