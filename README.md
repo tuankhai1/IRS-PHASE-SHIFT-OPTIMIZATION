@@ -1,19 +1,19 @@
 <div align="center">
-  <h1>📡 IRS Phase Shift Optimization</h1>
+  <h1>IRS Phase Shift Optimization</h1>
   <p><strong>Maximizing Spectrum Efficiency in Intelligent Reflecting Surface-Aided Wireless Networks</strong></p>
 </div>
 
 <br />
 
-## 📖 Introduction
+## Introduction
 Intelligent Reflecting Surfaces (IRS) have emerged as a disruptive technology capable of smartly reconfiguring the wireless propagation environment. By intelligently tuning the phase shifts of massive numbers of low-cost passive reflecting elements, an IRS can significantly enhance signal quality at the receiver. 
 
 This repository provides a comprehensive simulation framework to optimize the **achievable rate (spectrum efficiency)** of an IRS-aided wireless communication system. It features a deep comparative analysis between **ideal** reflection models and **practical** reflection models (where the reflection amplitude is fundamentally coupled with the phase shift).
 
-## 📄 Reference Paper
+## Reference Paper
 The models and optimization schemes in this repository are inspired by state-of-the-art literature on practical IRS phase shift modeling. The codebase is designed to reproduce the findings that ignoring the amplitude-phase coupling in IRS elements leads to sub-optimal designs, and that specialized algorithms are required to unlock the true potential of practical IRS hardware.
 
-## 🚀 The Approach
+## The Approach
 Optimizing the phase shifts of an IRS is a highly non-convex problem. To tackle this, we implement and benchmark three distinct algorithmic approaches:
 
 1. **Alternating Optimization (AO) [Baseline]**
@@ -23,7 +23,7 @@ Optimizing the phase shifts of an IRS is a highly non-convex problem. To tackle 
 3. **Covariance Matrix Adaptation Evolution Strategy (CMA-ES)**
    An advanced evolutionary strategy that adaptively updates its search distribution to find the global optimum.
 
-## 📊 Achieved Results
+## Achieved Results
 
 Here are the simulation results demonstrating the performance of the various algorithms under different system parameters:
 
@@ -45,10 +45,26 @@ Evaluates the performance degradation when the IRS is constrained to low-resolut
   <img src="assets/fig7_discrete_phases.png" alt="Discrete Phase Shifts" width="600"/>
 </p>
 
-## 🗺️ Codebase Analysis & Architecture
+## Codebase Analysis & Architecture
 
-![Codebase Analysis](assets/codebase_analysis.png)
-*(Note: Please ensure your codebase analysis picture is uploaded to the `assets` folder as `codebase_analysis.png` to render here).*
+```mermaid
+graph TD
+    A[main.py] -->|Configures & runs| B(simulation.py)
+    
+    B -->|Generates channels| C(channel_model.py)
+    B -->|Evaluates rate/gain| D(objective.py)
+    B -->|Optimizes phase shifts| E((algorithms/))
+    
+    D -->|Applies reflection physics| F(phase_shift_model.py)
+    
+    E -->|Alternating Optimization| G(ao.py)
+    E -->|Particle Swarm| H(pso.py)
+    E -->|CMA-ES| I(cmaes.py)
+    
+    G -->|JIT Acceleration| J[numba_kernels.py]
+    H -.->|Optional Hardware Accel| K[gpu_backend.py]
+    I -.->|Optional Hardware Accel| K
+```
 
 The repository is structured as follows to ensure modularity and scalability:
 
@@ -59,7 +75,7 @@ The repository is structured as follows to ensure modularity and scalability:
 - **`numba_kernels.py`**: JIT-compiled C-level bypasses for Python's standard execution, drastically speeding up the AO algorithm.
 - **`gpu_backend.py`**: A CuPy-driven backend for hardware-accelerated batch processing of meta-heuristic populations.
 
-## 💻 How to Apply (Usage Guide)
+## How to Apply (Usage Guide)
 
 ### Prerequisites
 Ensure you have Python 3.8 or higher installed. Clone this repository and install the dependencies:
