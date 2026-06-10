@@ -25,6 +25,13 @@ Optimizing the phase shifts of an IRS is a highly non-convex problem. To tackle 
 
 ## Achieved Results
 
+### Comparisons with Reference Paper
+This simulation framework successfully reproduces the key findings from the original literature:
+- **Rate vs. Distance (Fig. 5):** The generated curves accurately reflect the paper's results, showing that the practical phase shift model introduces a noticeable performance gap compared to the ideal model. This gap is most prominent when the user is located at intermediate distances where the reflected path dominates.
+- **Scaling with N (Fig. 6):** The simulation confirms the theoretical power gain scaling when using continuous phase shifts, while also accurately depicting the scaling penalties induced by the amplitude-phase coupling in practical scenarios.
+- **Discrete Phase Shifts (Fig. 7):** As established in the literature, the results confirm that using 2-bit or 3-bit discrete phase shifts achieves performance that is nearly identical to the continuous phase shift case, serving as a highly cost-effective design choice for practical IRS deployments.
+
+### Simulation Figures
 Here are the simulation results demonstrating the performance of the various algorithms under different system parameters:
 
 ### 1. Achievable Rate vs. AP-User Distance
