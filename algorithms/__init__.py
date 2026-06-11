@@ -1,1 +1,1 @@
-# Algorithms package for IRS phase shift optimization.
+# Algorithms package

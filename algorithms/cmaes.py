@@ -31,7 +31,7 @@ from phase_shift_model import wrap_angle, beta, reflection_vector
 from objective import compute_channel_gain
 from config import CMAES_MAX_ITER, CMAES_SIGMA0, CMAES_TOL, BETA_MIN, K_PARAM, PHI_PARAM
 
-# GPU acceleration (optional)
+# GPU acceleration
 try:
     from gpu_backend import GPUAccelerator
     _GPU_OK = True
@@ -218,7 +218,7 @@ def _run_cmaes_single(Phi, h_d, N, use_practical, discrete_set,
     # Strategy Parameters (from Hansen's tutorial, with 2x population)
     # ================================================================
     # Doubled population for better exploration in angular space
-    lam = 2 * (4 + int(3 * np.log(N)))      # offspring per generation
+    lam = 2 * (4 + int(3 * np.log(N)))        # offspring per generation
     mu = lam // 2                             # number of parents
 
     # Recombination weights (log-linear)
@@ -273,9 +273,8 @@ def _run_cmaes_single(Phi, h_d, N, use_practical, discrete_set,
     for gen in range(max_gen):
         # ---- Sample offspring (unwrapped) ----
         z = rng.standard_normal((lam, N))
-        y = z @ np.diag(D) @ B.T            # y_k = B D z_k
+        y = z @ np.diag(D) @ B.T             # y_k = B D z_k
         x = m[np.newaxis, :] + sigma * y     # x_k = m + σ y_k
-        # NOTE: No wrap_angle here — CMA-ES works in Euclidean space
 
         # ---- Evaluate fitness (wrap only for evaluation) ----
         eval_x = wrap_angle(x)
@@ -301,7 +300,6 @@ def _run_cmaes_single(Phi, h_d, N, use_practical, discrete_set,
         # ---- Update mean (unwrapped Euclidean) ----
         m_old = m.copy()
         m = weights @ x_sorted[:mu]
-        # NOTE: No wrap_angle — mean stays in Euclidean space
 
         # Mean step (simple Euclidean difference, no angle wrapping)
         dm = m - m_old

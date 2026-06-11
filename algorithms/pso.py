@@ -35,7 +35,7 @@ from config import (
     BETA_MIN, K_PARAM, PHI_PARAM
 )
 
-# GPU acceleration (optional)
+# GPU acceleration
 try:
     from gpu_backend import GPUAccelerator
     _GPU_OK = True
@@ -95,7 +95,7 @@ def _gradient_polish(theta, Phi, h_d, use_practical, n_steps=15, lr_init=0.05):
     for _ in range(n_steps):
         # Compute effective channel and back-projection
         v = reflection_vector(theta, use_practical)
-        h_eff = v.conj() @ Phi + h_d.conj()        # (M,)
+        h_eff = v.conj() @ Phi + h_d.conj()          # (M,)
         q = Phi @ h_eff.conj()                       # (N,)
 
         # Analytical gradient
@@ -139,7 +139,7 @@ def pso_optimize(Phi, h_d, N, use_practical=True,
     """
     Particle Swarm Optimization for IRS phase shift optimization.
 
-    Uses independent multi-strategy initialization (no AO dependency):
+    Uses independent multi-strategy initialization:
       - 20% phase-alignment particles (align reflected with direct path)
       - 20% anti-phase particles (opposite phase, sometimes better under
         the practical model due to β(θ) amplitude coupling)
