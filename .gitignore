@@ -6,3 +6,6 @@ __pycache__/
 results/
 results/*.npz
 results/*.png
+
+# LaTeX
+report.tex

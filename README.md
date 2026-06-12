@@ -1,6 +1,10 @@
 <div align="center">
   <h1>IRS Phase Shift Optimization</h1>
   <p><strong>Maximizing Spectrum Efficiency in Intelligent Reflecting Surface-Aided Wireless Networks</strong></p>
+  <p>
+    <a href="./PhaseShift_Model.pdf">📄 Read the Reference Paper</a> | 
+    <a href="./PSO_Report.pdf">📄 Read the PSO Report</a>
+  </p>
 </div>
 
 <br />
