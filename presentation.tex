@@ -1,0 +1,92 @@
+\documentclass{beamer}
+\usetheme{Madrid}
+\usecolortheme{default}
+\title[Particle Swarm Optimization]{Particle Swarm Optimization (PSO)}
+\subtitle{Algorithm Overview, Implementation, and Applications}
+\author{}
+\date{\today}
+\begin{document}
+\begin{frame}
+    \titlepage
+\end{frame}
+\begin{frame}{Introduction to PSO}
+    \begin{itemize}
+        \item \textbf{What is it?} A population-based metaheuristic optimization algorithm.
+        \item \textbf{Origin:} Introduced by James Kennedy and Russell Eberhart in 1995.
+        \item \textbf{Inspiration:} Social behavior of biological groups like bird flocks and fish schools.
+        \item \textbf{Core Concept:} A "swarm" of particles flies through a multidimensional search space to find the global optimum.
+    \end{itemize}
+\end{frame}
+\begin{frame}{How PSO Works: The Core Mechanisms}
+    Every particle in the swarm represents a potential solution. They move based on:
+    \vspace{0.5cm}
+    \begin{itemize}
+        \item \textbf{Inertia:} Continuing in their current direction.
+        \item \textbf{Cognitive Component ($pBest$):} Moving toward the best position they have personally experienced.
+        \item \textbf{Social Component ($gBest$):} Moving toward the best position found by the entire swarm.
+    \end{itemize}
+    \vspace{0.5cm}
+    Through this combination, the swarm collectively converges on the optimal solution.
+\end{frame}
+\begin{frame}{Steps to Implement PSO}
+    \begin{enumerate}
+        \item \textbf{Initialize:} Create a swarm with random positions and velocities.
+        \item \textbf{Evaluate Fitness:} Calculate the objective function value for each particle.
+        \item \textbf{Update $pBest$:} If current fitness is better than the particle's history, update its Personal Best.
+        \item \textbf{Update $gBest$:} Find the best $pBest$ among all particles and update the Global Best.
+        \item \textbf{Update Velocity:} \\
+        $v_i(t+1) = w \cdot v_i(t) + c_1 r_1 (pBest_i - x_i(t)) + c_2 r_2 (gBest - x_i(t))$
+        \item \textbf{Update Position:} $x_i(t+1) = x_i(t) + v_i(t+1)$
+        \item \textbf{Repeat:} Loop steps 2-6 until a stopping criterion is met.
+    \end{enumerate}
+\end{frame}
+\begin{frame}{Example Problem: Function Minimization}
+    \textbf{Problem:} Find the minimum of the Sphere function $f(x, y) = x^2 + y^2$. (Minimum is at $(0,0)$).
+    \vspace{0.3cm}
+    \begin{itemize}
+        \item \textbf{Initialization:} Particles are scattered randomly (e.g., at $(5,3)$ and $(-4,2)$).
+        \item \textbf{Evaluation:} Particle at $(-4,2)$ has a better fitness value ($16+4=20$) than the one at $(5,3)$ ($25+9=34$). It becomes the $gBest$.
+        \item \textbf{Movement:} Other particles adjust their velocities to fly towards $(-4,2)$.
+        \item \textbf{Convergence:} As particles move, they discover better areas (e.g., $(1,1)$). The $gBest$ updates, pulling the swarm until all particles converge at $(0,0)$.
+    \end{itemize}
+\end{frame}
+\begin{frame}{Real-World Applications}
+    \begin{itemize}
+        \item \textbf{Machine Learning:} Training neural networks (optimizing weights/biases), hyperparameter tuning.
+        \item \textbf{Engineering:} Structural design, antenna design, power system load dispatching.
+        \item \textbf{Operations Research:} Vehicle Routing, Traveling Salesman Problem (TSP), job scheduling.
+        \item \textbf{Robotics:} Autonomous path planning and obstacle avoidance.
+        \item \textbf{Healthcare:} Optimizing diagnostic models and medical image alignment.
+    \end{itemize}
+\end{frame}
+\begin{frame}{Upgraded Versions of PSO}
+    Standard PSO can sometimes get stuck in local optima. Variants include:
+    \vspace{0.3cm}
+    \begin{itemize}
+        \item \textbf{Adaptive PSO (APSO):} Dynamically tunes parameters (inertia weight, acceleration coefficients) during the run.
+        \item \textbf{Quantum-behaved PSO (QPSO):} Uses quantum mechanics principles to improve global exploration, eliminating standard velocity.
+        \item \textbf{Multi-Objective PSO (MOPSO):} Designed to optimize multiple conflicting objectives simultaneously (finding Pareto fronts).
+        \item \textbf{Hybrid PSO:} Combines PSO with Genetic Algorithms (GA) or Simulated Annealing (SA) to boost performance.
+    \end{itemize}
+\end{frame}
+\begin{frame}{Related Algorithms (Swarm Intelligence)}
+    \begin{itemize}
+        \item \textbf{Ant Colony Optimization (ACO):} Based on ant foraging and pheromone trails. Great for discrete routing (like TSP).
+        \item \textbf{Artificial Bee Colony (ABC):} Mimics honey bee foraging behaviors (employed bees, onlookers, scouts).
+        \item \textbf{Genetic Algorithms (GA):} Based on natural selection (crossover, mutation). Evolutionary, not strictly swarm-based.
+        \item \textbf{Differential Evolution (DE):} Vector-based evolutionary algorithm often hybridized with PSO.
+    \end{itemize}
+\end{frame}
+\begin{frame}{Conclusion}
+    \begin{itemize}
+        \item PSO is a highly effective, nature-inspired optimization tool.
+        \item Its mathematical simplicity makes it easy to implement.
+        \item It is versatile, handling continuous, discrete, and multi-objective problems.
+        \item Continuous research yields powerful hybrid and adaptive variants, expanding its utility in modern AI and engineering.
+    \end{itemize}
+    \vspace{1cm}
+    \begin{center}
+        \Large \textbf{Thank You!}
+    \end{center}
+\end{frame}
+\end{document}

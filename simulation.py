@@ -54,8 +54,13 @@ def _run_single_realization(N, d_horizontal, schemes, rng, discrete_set=None):
     dict
         Mapping scheme name -> achievable rate.
     """
+    # Generate channels using the base rng
     h_d, h_r, G, Phi = generate_channels(N, d_horizontal, rng)
     results = {}
+
+    # Create independent rng for each scheme to guarantee that adding/removing
+    # a scheme doesn't alter the random numbers seen by other schemes
+    scheme_rngs = {s: np.random.default_rng(rng.integers(0, 2**31)) for s in schemes}
 
     # Cache ideal AO result if needed by multiple schemes
     # (avoids running the same ideal-model optimization twice)
@@ -66,6 +71,8 @@ def _run_single_realization(N, d_horizontal, schemes, rng, discrete_set=None):
             Phi, h_d, N, method='prop1', use_practical=False, rng=_ideal_rng)
 
     for scheme in schemes:
+        s_rng = scheme_rngs[scheme]
+        
         if scheme == 'upper_bound':
             # Use cached ideal AO result
             results[scheme] = compute_rate(_ideal_gain)
@@ -73,14 +80,14 @@ def _run_single_realization(N, d_horizontal, schemes, rng, discrete_set=None):
         elif scheme == 'ao_practical_prop1':
             # AO with practical model, Proposition 1
             theta, gain = ao_optimize(Phi, h_d, N, method='prop1',
-                                       use_practical=True, rng=rng)
+                                       use_practical=True, rng=s_rng)
             results[scheme] = compute_rate(gain)
 
         elif scheme == 'ao_practical_1d':
             # AO with practical model, 1D search
             theta, gain = ao_optimize(Phi, h_d, N, method='1d_search',
                                        use_practical=True,
-                                       discrete_set=discrete_set, rng=rng)
+                                       discrete_set=discrete_set, rng=s_rng)
             results[scheme] = compute_rate(gain)
 
         elif scheme == 'ideal_design_practical_eval':
@@ -94,12 +101,12 @@ def _run_single_realization(N, d_horizontal, schemes, rng, discrete_set=None):
 
         elif scheme == 'pso_practical':
             theta, gain = pso_optimize(Phi, h_d, N, use_practical=True,
-                                        discrete_set=discrete_set, rng=rng)
+                                        discrete_set=discrete_set, rng=s_rng)
             results[scheme] = compute_rate(gain)
 
         elif scheme == 'cmaes_practical':
             theta, gain = cmaes_optimize(Phi, h_d, N, use_practical=True,
-                                          discrete_set=discrete_set, rng=rng)
+                                          discrete_set=discrete_set, rng=s_rng)
             results[scheme] = compute_rate(gain)
 
         # --- Discrete phase shift schemes (for Fig. 7) ---
@@ -109,7 +116,7 @@ def _run_single_realization(N, d_horizontal, schemes, rng, discrete_set=None):
             d_set = np.linspace(-np.pi, np.pi, K, endpoint=False)
             theta, gain = ao_optimize(Phi, h_d, N, method='1d_search',
                                        use_practical=True,
-                                       discrete_set=d_set, rng=rng)
+                                       discrete_set=d_set, rng=s_rng)
             results[scheme] = compute_rate(gain)
 
         elif scheme.startswith('ao_ideal_discrete_'):
@@ -118,7 +125,7 @@ def _run_single_realization(N, d_horizontal, schemes, rng, discrete_set=None):
             d_set = np.linspace(-np.pi, np.pi, K, endpoint=False)
             theta, gain = ao_optimize(Phi, h_d, N, method='1d_search',
                                        use_practical=False,
-                                       discrete_set=d_set, rng=rng)
+                                       discrete_set=d_set, rng=s_rng)
             # For ideal discrete, evaluate with ideal model
             results[scheme] = compute_rate(gain)
 
