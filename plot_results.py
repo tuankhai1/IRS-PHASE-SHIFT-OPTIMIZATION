@@ -65,7 +65,7 @@ def _setup_axes(ax, xlabel, ylabel, title=None):
     ax.yaxis.set_major_locator(ticker.MultipleLocator(0.5))
     
     # Align the first and last grid lines exactly with the bounding box spines
-    ax.margins(x=0)
+    ax.margins(x=0.03)
     ax.set_ylim(bottom=0)
     
     # Neater grids: solid light major grid only, explicitly turn off minor grid
@@ -73,7 +73,7 @@ def _setup_axes(ax, xlabel, ylabel, title=None):
     ax.grid(True, which='major', linestyle='-', linewidth=0.6, alpha=0.6, color='#A0A0A0')
     
     # MATLAB style: ticks point inward and appear on all 4 sides, full bounding box
-    ax.tick_params(direction='in', top=True, right=True, labelsize=11)
+    ax.tick_params(direction='in', top=True, right=True, labelsize=11, pad=6)
 
 
 def plot_fig5(results, save_path=None):

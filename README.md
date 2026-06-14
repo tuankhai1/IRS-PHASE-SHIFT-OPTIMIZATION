@@ -48,7 +48,7 @@ Here are the simulation results demonstrating the performance of the various alg
 
 Demonstrates how the system performs as the distance between the Access Point and the user increases.
 <p align="center">
-  <img src="assets/fig5_rate_vs_distance.png?v=4" alt="Rate vs Distance" width="600"/>
+  <img src="assets/fig5_rate_vs_distance.png?v=5" alt="Rate vs Distance" width="600"/>
 </p>
 
 #### Detailed Result Table (Fig. 5)
@@ -67,7 +67,7 @@ Demonstrates how the system performs as the distance between the Access Point an
 
 Illustrates the scaling behavior of the achievable rate as more IRS elements are added.
 <p align="center">
-  <img src="assets/fig6_rate_vs_N.png?v=4" alt="Rate vs N" width="600"/>
+  <img src="assets/fig6_rate_vs_N.png?v=5" alt="Rate vs N" width="600"/>
 </p>
 
 #### Detailed Result Table (Fig. 6)
@@ -86,7 +86,7 @@ Illustrates the scaling behavior of the achievable rate as more IRS elements are
 
 Evaluates the performance degradation when the IRS is constrained to low-resolution discrete phase shifts (e.g., 1-bit, 2-bit, or 3-bit).
 <p align="center">
-  <img src="assets/fig7_discrete_phases.png?v=4" alt="Discrete Phase Shifts" width="600"/>
+  <img src="assets/fig7_discrete_phases.png?v=5" alt="Discrete Phase Shifts" width="600"/>
 </p>
 
 #### Detailed Result Table (Fig. 7)
