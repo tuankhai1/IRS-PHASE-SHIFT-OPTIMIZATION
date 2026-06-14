@@ -31,12 +31,6 @@ from phase_shift_model import wrap_angle, beta, reflection_vector
 from objective import compute_channel_gain
 from config import CMAES_MAX_ITER, CMAES_SIGMA0, CMAES_TOL, BETA_MIN, K_PARAM, PHI_PARAM
 
-# GPU acceleration
-try:
-    from gpu_backend import GPUAccelerator
-    _GPU_OK = True
-except ImportError:
-    _GPU_OK = False
 
 
 def _screening_init(Phi, h_d, N, use_practical, discrete_set, rng):
@@ -95,15 +89,11 @@ def _screening_init(Phi, h_d, N, use_practical, discrete_set, rng):
         if 2 + i < n_candidates:
             candidates[2 + i] = wrap_angle(phase_align + rng.normal(0, sigma, size=N))
 
-    # Evaluate all candidates (GPU-accelerated if available)
+    # Evaluate all candidates
     eval_candidates = wrap_angle(candidates)
     if discrete_set is not None:
         eval_candidates = _quantize_batch(eval_candidates, discrete_set)
-    _gpu_s = GPUAccelerator(Phi, h_d) if _GPU_OK else None
-    if _gpu_s is not None:
-        fitness = _gpu_s.batch_channel_gain(eval_candidates, use_practical)
-    else:
-        fitness = compute_channel_gain(eval_candidates, Phi, h_d, use_practical)
+    fitness = compute_channel_gain(eval_candidates, Phi, h_d, use_practical)
 
     # Return the best candidate
     best_idx = np.argmax(fitness)
@@ -257,8 +247,6 @@ def _run_cmaes_single(Phi, h_d, N, use_practical, discrete_set,
     best_theta = wrap_angle(m.copy())
     best_obj = -np.inf
 
-    # GPU-accelerated batch evaluator
-    _gpu_c = GPUAccelerator(Phi, h_d) if _GPU_OK else None
 
     # Counter for eigendecomposition
     eigen_update_interval = max(1, lam // (10 * N))
@@ -280,10 +268,7 @@ def _run_cmaes_single(Phi, h_d, N, use_practical, discrete_set,
         eval_x = wrap_angle(x)
         if discrete_set is not None:
             eval_x = _quantize_batch(eval_x, discrete_set)
-        if _gpu_c is not None:
-            fitness = _gpu_c.batch_channel_gain(eval_x, use_practical)
-        else:
-            fitness = compute_channel_gain(eval_x, Phi, h_d, use_practical)
+        fitness = compute_channel_gain(eval_x, Phi, h_d, use_practical)
 
         # ---- Sort by fitness (descending — we maximize) ----
         ranking = np.argsort(-fitness)

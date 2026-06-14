@@ -19,19 +19,7 @@ from config import (
     BETA_MIN, K_PARAM, PHI_PARAM
 )
 
-# ============================================================
-# Numba JIT support (optional — falls back to NumPy)
-# ============================================================
-try:
-    from numba_kernels import (
-        ao_inner_iteration as _ao_jit,
-        ao_inner_iteration_discrete as _ao_jit_discrete,
-        NUMBA_AVAILABLE as _NUMBA_OK
-    )
-except ImportError:
-    _NUMBA_OK = False
-    _ao_jit = None
-    _ao_jit_discrete = None
+
 
 # ============================================================
 # Precomputed lookup tables for 1D search
@@ -249,46 +237,20 @@ def ao_optimize(Phi, h_d, N, method='prop1', use_practical=True,
     v = reflection_vector(theta, use_practical)
     obj_prev = compute_channel_gain(theta, Phi, h_d, use_practical)
 
-    _use_jit = _NUMBA_OK  # local flag, can be disabled on failure
-
     for iteration in range(max_iter):
-        jit_ok = False
-        if _use_jit:
-            try:
-                if discrete_set is not None:
-                    theta, v = _ao_jit_discrete(
-                        theta, v, Psi, hd_hat, discrete_set,
-                        N, len(discrete_set), use_practical,
-                        BETA_MIN, K_PARAM, PHI_PARAM
-                    )
-                else:
-                    theta, v = _ao_jit(
-                        theta, v, Psi, hd_hat, _CANDIDATES, _BETA_CACHE,
-                        _BETA_SQ_CACHE, _COS_CACHE, _SIN_CACHE,
-                        N, len(_CANDIDATES), use_practical,
-                        BETA_MIN, K_PARAM, PHI_PARAM
-                    )
-                jit_ok = True
-            except Exception:
-                # Numba compilation failed (e.g., MemoryError in worker).
-                # Fall back to Python for the rest of this call.
-                _use_jit = False
+        for n in range(N):
+            phi_n = _compute_phi_n(n, v, Psi, hd_hat)
+            psi_nn = np.real(Psi[n, n])
 
-        if not jit_ok:
-            # ---- Python fallback with precomputed caches ----
-            for n in range(N):
-                phi_n = _compute_phi_n(n, v, Psi, hd_hat)
-                psi_nn = np.real(Psi[n, n])
+            if discrete_set is not None:
+                theta[n] = _solve_p2_1d_search(psi_nn, phi_n,
+                                                discrete_set=discrete_set)
+            elif not use_practical:
+                theta[n] = np.angle(phi_n)
+            else:
+                theta[n] = _solve_p2_proposition1(psi_nn, phi_n)
 
-                if discrete_set is not None:
-                    theta[n] = _solve_p2_1d_search(psi_nn, phi_n,
-                                                    discrete_set=discrete_set)
-                elif not use_practical:
-                    theta[n] = np.angle(phi_n)
-                else:
-                    theta[n] = _solve_p2_proposition1(psi_nn, phi_n)
-
-                v[n] = reflection_vector(np.array([theta[n]]), use_practical)[0]
+            v[n] = reflection_vector(np.array([theta[n]]), use_practical)[0]
 
         # Check convergence
         obj_curr = compute_channel_gain(theta, Phi, h_d, use_practical)
@@ -298,43 +260,3 @@ def ao_optimize(Phi, h_d, N, method='prop1', use_practical=True,
 
     return theta, obj_curr
 
-
-def ideal_model_init(Phi, h_d, N, rng=None):
-    """
-    Compute a good initial phase shift vector using the ideal model.
-
-    Runs a quick AO with ideal phase shift model (β=1) for 10 iterations.
-    Each element's optimal phase is simply arg(ϕ_n), making this very fast.
-
-    This provides an excellent warm start for PSO/CMA-ES because:
-    - The ideal-model solution is typically within ~0.5 rad of the practical optimum
-    - Population-based methods can then do local refinement under the practical model
-
-    Parameters
-    ----------
-    Phi : ndarray, shape (N, M)
-    h_d : ndarray, shape (M,)
-    N : int
-    rng : np.random.Generator, optional
-
-    Returns
-    -------
-    theta_init : ndarray, shape (N,)
-        Good initial phase shift vector.
-    """
-    if rng is None:
-        rng = np.random.default_rng()
-
-    Psi, hd_hat = _compute_psi_and_hd_hat(Phi, h_d)
-
-    theta = rng.choice([np.pi, -np.pi], size=N).astype(float)
-    v = np.exp(1j * theta)  # ideal model: |v_n| = 1
-
-    for _ in range(10):
-        for n in range(N):
-            psi_sum = Psi[n, :] @ v - Psi[n, n] * v[n]
-            phi_n = 2 * (psi_sum + hd_hat[n])
-            theta[n] = np.angle(phi_n)
-            v[n] = np.exp(1j * theta[n])
-
-    return theta

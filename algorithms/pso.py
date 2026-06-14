@@ -35,12 +35,6 @@ from config import (
     BETA_MIN, K_PARAM, PHI_PARAM
 )
 
-# GPU acceleration
-try:
-    from gpu_backend import GPUAccelerator
-    _GPU_OK = True
-except ImportError:
-    _GPU_OK = False
 
 
 def _phase_alignment_init(Phi, h_d, N):
@@ -183,13 +177,8 @@ def pso_optimize(Phi, h_d, N, use_practical=True,
     if rng is None:
         rng = np.random.default_rng()
 
-    # GPU-accelerated batch fitness evaluator
-    _gpu = GPUAccelerator(Phi, h_d) if _GPU_OK else None
-
     def _eval_batch(theta_batch):
-        """Evaluate channel gain for a batch, GPU if available."""
-        if _gpu is not None:
-            return _gpu.batch_channel_gain(theta_batch, use_practical)
+        """Evaluate channel gain for a batch."""
         return compute_channel_gain(theta_batch, Phi, h_d, use_practical)
 
     # ================================================================

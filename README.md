@@ -21,7 +21,7 @@ The models and optimization schemes in this repository are inspired by state-of-
 Optimizing the phase shifts of an IRS is a highly non-convex problem. To tackle this, we implement and benchmark three distinct algorithmic approaches:
 
 1. **Alternating Optimization (AO) [Baseline]**
-   A rigorous coordinate-descent approach leveraging Numba JIT compilation for blazing-fast CPU execution.
+   A rigorous coordinate-descent approach for CPU execution.
 2. **Particle Swarm Optimization (PSO)**
    A meta-heuristic algorithm utilizing multi-strategy initialization, ring topologies, and constriction factors for robust multi-modal search space exploration.
 3. **Covariance Matrix Adaptation Evolution Strategy (CMA-ES)**
@@ -72,9 +72,7 @@ graph TD
     E -->|Particle Swarm| H(pso.py)
     E -->|CMA-ES| I(cmaes.py)
     
-    G -->|JIT Acceleration| J[numba_kernels.py]
-    H -.->|Optional Hardware Accel| K[gpu_backend.py]
-    I -.->|Optional Hardware Accel| K
+
 ```
 
 The repository is structured as follows to ensure modularity and scalability:
@@ -83,8 +81,7 @@ The repository is structured as follows to ensure modularity and scalability:
 - **`simulation.py`**: The engine driving the simulations. Features built-in multiprocessing to parallelize independent channel realizations across multiple CPU cores.
 - **`channel_model.py` / `phase_shift_model.py`**: Core mathematical definitions for the fading channels and the IRS reflection physics.
 - **`algorithms/`**: Contains the implementations for the optimizers (`ao.py`, `pso.py`, `cmaes.py`).
-- **`numba_kernels.py`**: JIT-compiled C-level bypasses for Python's standard execution, drastically speeding up the AO algorithm.
-- **`gpu_backend.py`**: A CuPy-driven backend for hardware-accelerated batch processing of meta-heuristic populations.
+
 
 ## How to Apply (Usage Guide)
 
@@ -93,9 +90,8 @@ Ensure you have Python 3.8 or higher installed. Clone this repository and instal
 ```bash
 git clone https://github.com/tuankhai1/IRS-PHASE-SHIFT-OPTIMIZATION.git
 cd IRS-PHASE-SHIFT-OPTIMIZATION
-pip install numpy matplotlib numba scipy
+pip install numpy matplotlib scipy
 ```
-*(Optional: Install `cupy` if you intend to utilize the GPU backend).*
 
 ### Running the Simulations
 To run the full suite of simulations (1000 channel realizations per scenario):
