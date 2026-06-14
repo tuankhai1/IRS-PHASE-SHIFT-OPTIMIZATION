@@ -66,13 +66,10 @@ def _setup_axes(ax, xlabel, ylabel, title=None):
     
     # Neater grids: solid light major grid only, explicitly turn off minor grid
     ax.grid(False, which='minor')
-    ax.grid(True, which='major', linestyle='-', linewidth=0.8, alpha=0.5, color='#BDBDBD')
+    ax.grid(True, which='major', linestyle='-', linewidth=0.6, alpha=0.6, color='#A0A0A0')
     
-    # Clean up spines
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    
-    ax.tick_params(labelsize=11)
+    # MATLAB style: ticks point inward and appear on all 4 sides, full bounding box
+    ax.tick_params(direction='in', top=True, right=True, labelsize=11)
 
 
 def plot_fig5(results, save_path=None):
