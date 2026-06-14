@@ -64,6 +64,10 @@ def _setup_axes(ax, xlabel, ylabel, title=None):
     # Y-axis intervals of 0.5
     ax.yaxis.set_major_locator(ticker.MultipleLocator(0.5))
     
+    # Align the first and last grid lines exactly with the bounding box spines
+    ax.margins(x=0)
+    ax.set_ylim(bottom=0)
+    
     # Neater grids: solid light major grid only, explicitly turn off minor grid
     ax.grid(False, which='minor')
     ax.grid(True, which='major', linestyle='-', linewidth=0.6, alpha=0.6, color='#A0A0A0')
