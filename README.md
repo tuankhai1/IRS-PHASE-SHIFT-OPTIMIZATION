@@ -100,8 +100,6 @@ The repository is structured as follows to ensure modularity and scalability:
 │   ├── pso.py                # Particle Swarm Optimization algorithm implementation
 │   └── cmaes.py              # Covariance Matrix Adaptation Evolution Strategy implementation
 ├── assets/                   # Saved simulation plots for README documentation
-├── results/                  # Serialized .npz files of simulation results (ignored in Git)
-├── report.tex                # LaTeX source for the project report (ignored in Git)
 ├── PSO_Report.pdf            # PDF report detailing PSO implementation
 └── PhaseShift_Model.pdf      # Reference paper detailing the phase shift model
 ```
