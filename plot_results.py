@@ -6,6 +6,7 @@ Reproduces the paper's Figs. 5, 6, and 7 with additional PSO and CMA-ES curves.
 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 import os
 
 
@@ -56,7 +57,19 @@ def _setup_axes(ax, xlabel, ylabel, title=None):
     ax.set_ylabel(ylabel, fontsize=13)
     if title:
         ax.set_title(title, fontsize=14, fontweight='bold')
-    ax.grid(True, alpha=0.3, linestyle='--')
+        
+    # Y-axis intervals of 0.5
+    ax.yaxis.set_major_locator(ticker.MultipleLocator(0.5))
+    ax.yaxis.set_minor_locator(ticker.MultipleLocator(0.1))
+    
+    # Neater grids: solid light major grid, very faint dashed minor grid
+    ax.grid(which='major', linestyle='-', linewidth=0.8, alpha=0.5, color='#BDBDBD')
+    ax.grid(which='minor', linestyle=':', linewidth=0.5, alpha=0.3, color='#E0E0E0')
+    
+    # Clean up spines
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    
     ax.tick_params(labelsize=11)
 
 
