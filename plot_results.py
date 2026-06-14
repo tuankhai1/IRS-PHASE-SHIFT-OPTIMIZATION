@@ -65,7 +65,7 @@ def _setup_axes(ax, xlabel, ylabel, title=None):
     ax.yaxis.set_major_locator(ticker.MultipleLocator(0.5))
     
     # Align the first and last grid lines exactly with the bounding box spines
-    ax.margins(x=0.03)
+    ax.margins(x=0)
     ax.set_ylim(bottom=0)
     
     # Neater grids: solid light major grid only, explicitly turn off minor grid
@@ -102,8 +102,9 @@ def plot_fig5(results, save_path=None):
             ax.plot(d_values, results[scheme],
                     label=style['label'], color=style['color'],
                     marker=style['marker'], linestyle=style['ls'],
-                    linewidth=style['lw'], markersize=8)
+                    linewidth=style['lw'], markersize=8, clip_on=False)
 
+    ax.set_xlim([d_values[0], d_values[-1]])
     _setup_axes(ax,
                 xlabel='AP-user horizontal distance: $d$ (m)',
                 ylabel='Achievable rate (bits/s/Hz)',
@@ -143,8 +144,9 @@ def plot_fig6(results, save_path=None):
             ax.plot(N_values, results[scheme],
                     label=style['label'], color=style['color'],
                     marker=style['marker'], linestyle=style['ls'],
-                    linewidth=style['lw'], markersize=8)
+                    linewidth=style['lw'], markersize=8, clip_on=False)
 
+    ax.set_xlim([N_values[0], N_values[-1]])
     _setup_axes(ax,
                 xlabel='Number of reflecting elements ($N$)',
                 ylabel='Achievable rate (bits/s/Hz)',
@@ -179,7 +181,7 @@ def plot_fig7(results, save_path=None):
             ax.plot(d_values, results[scheme],
                     label=style['label'], color=style['color'],
                     marker=style['marker'], linestyle=style['ls'],
-                    linewidth=style['lw'], markersize=8)
+                    linewidth=style['lw'], markersize=8, clip_on=False)
 
     # Plot discrete schemes — practical first (solid), then ideal (dashed)
     plot_order = [
@@ -193,8 +195,9 @@ def plot_fig7(results, save_path=None):
             ax.plot(d_values, results[key],
                     label=style['label'], color=style['color'],
                     marker=style['marker'], linestyle=style['ls'],
-                    linewidth=style['lw'], markersize=style['ms'])
+                    linewidth=style['lw'], markersize=style['ms'], clip_on=False)
 
+    ax.set_xlim([d_values[0], d_values[-1]])
     _setup_axes(ax,
                 xlabel='AP-user horizontal distance: $d$ (m)',
                 ylabel='Achievable rate (bits/s/Hz)',
