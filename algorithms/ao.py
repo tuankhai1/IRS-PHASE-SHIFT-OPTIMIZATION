@@ -81,30 +81,7 @@ def _compute_phi_n(n, v, Psi, hd_hat):
     return 2 * (psi_sum + hd_hat[n])
 
 
-def _f_sub(theta_n, psi_nn, phi_n_abs, phi_n_arg):
-    """
-    Evaluate the per-element sub-problem objective f(θ_n).
 
-    f(θ_n) = β²(θ_n) * Ψ_{n,n}  +  β(θ_n) * |ϕ_n| * cos(arg(ϕ_n) - θ_n)
-
-    Parameters
-    ----------
-    theta_n : float or ndarray
-        Phase shift value(s) to evaluate.
-    psi_nn : float
-        Diagonal element Ψ_{n,n} (real, non-negative).
-    phi_n_abs : float
-        |ϕ_n|
-    phi_n_arg : float
-        arg(ϕ_n)
-
-    Returns
-    -------
-    float or ndarray
-        Objective value(s).
-    """
-    b = beta(theta_n)
-    return b ** 2 * psi_nn + b * phi_n_abs * np.cos(phi_n_arg - theta_n)
 
 
 def _solve_p2_proposition1(psi_nn, phi_n):
@@ -247,6 +224,8 @@ def ao_optimize(Phi, h_d, N, method='prop1', use_practical=True,
                                                 discrete_set=discrete_set)
             elif not use_practical:
                 theta[n] = np.angle(phi_n)
+            elif method == '1d_search':
+                theta[n] = _solve_p2_1d_search(psi_nn, phi_n)
             else:
                 theta[n] = _solve_p2_proposition1(psi_nn, phi_n)
 
