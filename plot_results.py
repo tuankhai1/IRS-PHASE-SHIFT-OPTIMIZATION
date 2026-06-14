@@ -58,11 +58,15 @@ def _setup_axes(ax, xlabel, ylabel, title=None):
     if title:
         ax.set_title(title, fontsize=14, fontweight='bold')
         
+    # Ensure minor ticks are completely disabled
+    ax.minorticks_off()
+        
     # Y-axis intervals of 0.5
     ax.yaxis.set_major_locator(ticker.MultipleLocator(0.5))
     
-    # Neater grids: solid light major grid only
-    ax.grid(True, linestyle='-', linewidth=0.8, alpha=0.5, color='#BDBDBD')
+    # Neater grids: solid light major grid only, explicitly turn off minor grid
+    ax.grid(False, which='minor')
+    ax.grid(True, which='major', linestyle='-', linewidth=0.8, alpha=0.5, color='#BDBDBD')
     
     # Clean up spines
     ax.spines['top'].set_visible(False)
