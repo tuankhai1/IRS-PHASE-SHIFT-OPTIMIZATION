@@ -60,11 +60,9 @@ def _setup_axes(ax, xlabel, ylabel, title=None):
         
     # Y-axis intervals of 0.5
     ax.yaxis.set_major_locator(ticker.MultipleLocator(0.5))
-    ax.yaxis.set_minor_locator(ticker.MultipleLocator(0.1))
     
-    # Neater grids: solid light major grid, very faint dashed minor grid
-    ax.grid(which='major', linestyle='-', linewidth=0.8, alpha=0.5, color='#BDBDBD')
-    ax.grid(which='minor', linestyle=':', linewidth=0.5, alpha=0.3, color='#E0E0E0')
+    # Neater grids: solid light major grid only
+    ax.grid(True, linestyle='-', linewidth=0.8, alpha=0.5, color='#BDBDBD')
     
     # Clean up spines
     ax.spines['top'].set_visible(False)
