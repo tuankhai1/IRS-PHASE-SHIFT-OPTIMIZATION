@@ -51,6 +51,18 @@ Demonstrates how the system performs as the distance between the Access Point an
   <img src="assets/fig5_rate_vs_distance.png" alt="Rate vs Distance" width="600"/>
 </p>
 
+#### Detailed Result Table (Fig. 5)
+
+| Scheme | 480 | 482 | 484 | 486 | 488 | 490 | 492 | 494 | 496 | 498 | 500 |
+|:---| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| upper_bound | 0.3354 | 0.3580 | 0.3926 | 0.4436 | 0.5260 | 0.6467 | 0.8538 | 1.2305 | 1.9588 | 3.3039 | 4.5096 |
+| ao_practical_prop1 | 0.2672 | 0.2762 | 0.2945 | 0.3192 | 0.3643 | 0.4278 | 0.5428 | 0.7689 | 1.2535 | 2.3301 | 3.4178 |
+| ao_practical_1d | 0.2672 | 0.2762 | 0.2945 | 0.3192 | 0.3643 | 0.4278 | 0.5428 | 0.7689 | 1.2535 | 2.3301 | 3.4178 |
+| ideal_design_practical_eval | 0.2544 | 0.2610 | 0.2762 | 0.2961 | 0.3334 | 0.3853 | 0.4799 | 0.6661 | 1.0700 | 1.9858 | 2.9552 |
+| lower_bound | 0.1747 | 0.1683 | 0.1664 | 0.1610 | 0.1618 | 0.1576 | 0.1584 | 0.1565 | 0.1556 | 0.1540 | 0.1501 |
+| pso_practical | 0.2664 | 0.2753 | 0.2934 | 0.3178 | 0.3623 | 0.4249 | 0.5381 | 0.7598 | 1.2320 | 2.2818 | 3.3522 |
+| cmaes_practical | 0.2669 | 0.2758 | 0.2941 | 0.3186 | 0.3634 | 0.4266 | 0.5407 | 0.7648 | 1.2432 | 2.3038 | 3.3808 |
+
 ### 2. Achievable Rate vs. Number of Reflecting Elements (N)
 
 Illustrates the scaling behavior of the achievable rate as more IRS elements are added.
@@ -58,12 +70,37 @@ Illustrates the scaling behavior of the achievable rate as more IRS elements are
   <img src="assets/fig6_rate_vs_N.png" alt="Rate vs N" width="600"/>
 </p>
 
+#### Detailed Result Table (Fig. 6)
+
+| Scheme | 10 | 20 | 30 | 40 | 50 | 60 | 70 | 80 |
+|:---| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| upper_bound | 1.0105 | 1.9065 | 2.6857 | 3.2936 | 3.8243 | 4.2746 | 4.6474 | 5.0021 |
+| ao_practical_prop1 | 0.6559 | 1.2447 | 1.8150 | 2.3041 | 2.7730 | 3.1611 | 3.4979 | 3.8357 |
+| ao_practical_1d | 0.6559 | 1.2447 | 1.8150 | 2.3041 | 2.7730 | 3.1611 | 3.4979 | 3.8357 |
+| ideal_design_practical_eval | 0.5522 | 1.0364 | 1.5230 | 1.9538 | 2.3916 | 2.7599 | 3.0815 | 3.4062 |
+| lower_bound | 0.1490 | 0.1575 | 0.1550 | 0.1478 | 0.1522 | 0.1476 | 0.1506 | 0.1463 |
+| pso_practical | 0.6560 | 1.2429 | 1.7981 | 2.2530 | 2.6837 | 3.0273 | 3.3247 | 3.6258 |
+| cmaes_practical | 0.6559 | 1.2432 | 1.8046 | 2.2770 | 2.7268 | 3.0927 | 3.4089 | 3.7262 |
+
 ### 3. Impact of Discrete Phase Shifts
 
 Evaluates the performance degradation when the IRS is constrained to low-resolution discrete phase shifts (e.g., 1-bit, 2-bit, or 3-bit).
 <p align="center">
   <img src="assets/fig7_discrete_phases.png" alt="Discrete Phase Shifts" width="600"/>
 </p>
+
+#### Detailed Result Table (Fig. 7)
+
+| Scheme | 400 | 420 | 440 | 460 | 480 | 498 |
+|:---| ---: | ---: | ---: | ---: | ---: | ---: |
+| upper_bound | 0.3337 | 0.2920 | 0.2591 | 0.2557 | 0.3328 | 3.3028 |
+| lower_bound | 0.3155 | 0.2682 | 0.2255 | 0.1979 | 0.1723 | 0.1501 |
+| ao_practical_discrete_1 | 0.3223 | 0.2770 | 0.2380 | 0.2192 | 0.2279 | 1.6485 |
+| ao_ideal_discrete_1 | 0.3271 | 0.2832 | 0.2467 | 0.2340 | 0.2707 | 2.4467 |
+| ao_practical_discrete_2 | 0.3247 | 0.2802 | 0.2424 | 0.2268 | 0.2489 | 2.0150 |
+| ao_ideal_discrete_2 | 0.3308 | 0.2881 | 0.2536 | 0.2461 | 0.3046 | 2.8653 |
+| ao_practical_discrete_3 | 0.3260 | 0.2818 | 0.2447 | 0.2308 | 0.2598 | 2.2339 |
+| ao_ideal_discrete_3 | 0.3313 | 0.2888 | 0.2546 | 0.2478 | 0.3089 | 2.9126 |
 
 ## Codebase Analysis & Architecture
 
@@ -142,44 +179,6 @@ python main.py --fig 7  # Fig. 7: Discrete phase shifts
 
 All simulation results are automatically serialized as `.npz` files and plotted as `.png` files inside the `results/` directory.
 
-## Detailed Result Tables
-
-### Fig 5: Rate vs Distance
-
-| Scheme | 480 | 482 | 484 | 486 | 488 | 490 | 492 | 494 | 496 | 498 | 500 |
-|:---| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| upper_bound | 0.3354 | 0.3580 | 0.3926 | 0.4436 | 0.5260 | 0.6467 | 0.8538 | 1.2305 | 1.9588 | 3.3039 | 4.5096 |
-| ao_practical_prop1 | 0.2672 | 0.2762 | 0.2945 | 0.3192 | 0.3643 | 0.4278 | 0.5428 | 0.7689 | 1.2535 | 2.3301 | 3.4178 |
-| ao_practical_1d | 0.2672 | 0.2762 | 0.2945 | 0.3192 | 0.3643 | 0.4278 | 0.5428 | 0.7689 | 1.2535 | 2.3301 | 3.4178 |
-| ideal_design_practical_eval | 0.2544 | 0.2610 | 0.2762 | 0.2961 | 0.3334 | 0.3853 | 0.4799 | 0.6661 | 1.0700 | 1.9858 | 2.9552 |
-| lower_bound | 0.1747 | 0.1683 | 0.1664 | 0.1610 | 0.1618 | 0.1576 | 0.1584 | 0.1565 | 0.1556 | 0.1540 | 0.1501 |
-| pso_practical | 0.2664 | 0.2753 | 0.2934 | 0.3178 | 0.3623 | 0.4249 | 0.5381 | 0.7598 | 1.2320 | 2.2818 | 3.3522 |
-| cmaes_practical | 0.2669 | 0.2758 | 0.2941 | 0.3186 | 0.3634 | 0.4266 | 0.5407 | 0.7648 | 1.2432 | 2.3038 | 3.3808 |
-
-### Fig 6: Rate vs N
-
-| Scheme | 10 | 20 | 30 | 40 | 50 | 60 | 70 | 80 |
-|:---| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| upper_bound | 1.0105 | 1.9065 | 2.6857 | 3.2936 | 3.8243 | 4.2746 | 4.6474 | 5.0021 |
-| ao_practical_prop1 | 0.6559 | 1.2447 | 1.8150 | 2.3041 | 2.7730 | 3.1611 | 3.4979 | 3.8357 |
-| ao_practical_1d | 0.6559 | 1.2447 | 1.8150 | 2.3041 | 2.7730 | 3.1611 | 3.4979 | 3.8357 |
-| ideal_design_practical_eval | 0.5522 | 1.0364 | 1.5230 | 1.9538 | 2.3916 | 2.7599 | 3.0815 | 3.4062 |
-| lower_bound | 0.1490 | 0.1575 | 0.1550 | 0.1478 | 0.1522 | 0.1476 | 0.1506 | 0.1463 |
-| pso_practical | 0.6560 | 1.2429 | 1.7981 | 2.2530 | 2.6837 | 3.0273 | 3.3247 | 3.6258 |
-| cmaes_practical | 0.6559 | 1.2432 | 1.8046 | 2.2770 | 2.7268 | 3.0927 | 3.4089 | 3.7262 |
-
-### Fig 7: Rate with Discrete Phases
-
-| Scheme | 400 | 420 | 440 | 460 | 480 | 498 |
-|:---| ---: | ---: | ---: | ---: | ---: | ---: |
-| upper_bound | 0.3337 | 0.2920 | 0.2591 | 0.2557 | 0.3328 | 3.3028 |
-| lower_bound | 0.3155 | 0.2682 | 0.2255 | 0.1979 | 0.1723 | 0.1501 |
-| ao_practical_discrete_1 | 0.3223 | 0.2770 | 0.2380 | 0.2192 | 0.2279 | 1.6485 |
-| ao_ideal_discrete_1 | 0.3271 | 0.2832 | 0.2467 | 0.2340 | 0.2707 | 2.4467 |
-| ao_practical_discrete_2 | 0.3247 | 0.2802 | 0.2424 | 0.2268 | 0.2489 | 2.0150 |
-| ao_ideal_discrete_2 | 0.3308 | 0.2881 | 0.2536 | 0.2461 | 0.3046 | 2.8653 |
-| ao_practical_discrete_3 | 0.3260 | 0.2818 | 0.2447 | 0.2308 | 0.2598 | 2.2339 |
-| ao_ideal_discrete_3 | 0.3313 | 0.2888 | 0.2546 | 0.2478 | 0.3089 | 2.9126 |
 
 ---
 *Created for the advancement of Intelligent Reflecting Surface research.*
