@@ -26,18 +26,17 @@ Reference:
 """
 
 import numpy as np
-from phase_shift_model import wrap_angle, beta, reflection_vector
+from phase_shift_model import quantize_angles, wrap_angle
 from objective import compute_channel_gain
+from algorithms.polishing import gradient_polish
 from config import (
     PSO_POP_SIZE, PSO_MAX_ITER,
-    PSO_W_MAX, PSO_W_MIN,
     PSO_C1, PSO_C2, PSO_V_MAX,
-    BETA_MIN, K_PARAM, PHI_PARAM
 )
 
 
 
-def _phase_alignment_init(Phi, h_d, N):
+def _phase_alignment_init(Phi, h_d):
     """
     Compute a starting phase vector by aligning the reflected path
     with the direct channel.
@@ -49,8 +48,6 @@ def _phase_alignment_init(Phi, h_d, N):
     ----------
     Phi : ndarray, shape (N, M)
     h_d : ndarray, shape (M,)
-    N : int
-
     Returns
     -------
     theta_ref : ndarray, shape (N,)
@@ -59,75 +56,12 @@ def _phase_alignment_init(Phi, h_d, N):
     return np.angle(projection)
 
 
-def _gradient_polish(theta, Phi, h_d, use_practical, n_steps=15, lr_init=0.05):
-    """
-    Refine a phase shift solution using analytical gradient ascent.
-
-    Unlike AO's coordinate descent (one element at a time), gradient
-    ascent updates ALL elements simultaneously. This can find improvements
-    at joint optima that coordinate-wise methods miss.
-
-    Parameters
-    ----------
-    theta : ndarray, shape (N,)
-    Phi : ndarray, shape (N, M)
-    h_d : ndarray, shape (M,)
-    use_practical : bool
-    n_steps : int
-    lr_init : float
-
-    Returns
-    -------
-    best_theta : ndarray, shape (N,)
-    best_obj : float
-    """
-    theta = wrap_angle(theta.copy())
-    best_obj = compute_channel_gain(theta, Phi, h_d, use_practical)
-    best_theta = theta.copy()
-    lr = lr_init
-
-    for _ in range(n_steps):
-        # Compute effective channel and back-projection
-        v = reflection_vector(theta, use_practical)
-        h_eff = v.conj() @ Phi + h_d.conj()          # (M,)
-        q = Phi @ h_eff.conj()                       # (N,)
-
-        # Analytical gradient
-        if use_practical:
-            b = beta(theta)
-            s = (np.sin(theta - PHI_PARAM) + 1) / 2
-            b_prime = ((1 - BETA_MIN) * K_PARAM *
-                       np.maximum(s, 1e-20) ** (K_PARAM - 1) *
-                       np.cos(theta - PHI_PARAM) / 2)
-            dv_conj = (b_prime - 1j * b) * np.exp(-1j * theta)
-        else:
-            dv_conj = -1j * np.exp(-1j * theta)
-
-        grad = 2.0 * np.real(dv_conj * q)
-
-        # Gradient ascent with adaptive step size
-        theta_new = wrap_angle(theta + lr * grad)
-        obj_new = compute_channel_gain(theta_new, Phi, h_d, use_practical)
-
-        if obj_new > best_obj:
-            best_obj = obj_new
-            best_theta = theta_new.copy()
-            theta = theta_new
-            lr = min(lr * 1.1, 0.5)
-        else:
-            lr *= 0.5
-            theta = best_theta.copy()
-            if lr < 1e-8:
-                break
-
-    return best_theta, best_obj
 
 
 def pso_optimize(Phi, h_d, N, use_practical=True,
                  discrete_set=None,
                  pop_size=PSO_POP_SIZE,
                  max_iter=PSO_MAX_ITER,
-                 w_max=PSO_W_MAX, w_min=PSO_W_MIN,
                  c1=PSO_C1, c2=PSO_C2, v_max=PSO_V_MAX,
                  rng=None):
     """
@@ -158,11 +92,9 @@ def pso_optimize(Phi, h_d, N, use_practical=True,
         Number of particles in the swarm.
     max_iter : int
         Maximum number of iterations.
-    w_max, w_min : float
-        Initial and final inertia weights (used only as fallback;
-        constriction factor overrides when c1+c2 > 4).
     c1, c2 : float
         Cognitive and social acceleration coefficients.
+        Must satisfy c1 + c2 > 4 for the constriction factor.
     v_max : float
         Maximum velocity magnitude per dimension.
     rng : np.random.Generator, optional
@@ -177,27 +109,23 @@ def pso_optimize(Phi, h_d, N, use_practical=True,
     if rng is None:
         rng = np.random.default_rng()
 
-    def _eval_batch(theta_batch):
-        """Evaluate channel gain for a batch."""
-        return compute_channel_gain(theta_batch, Phi, h_d, use_practical)
-
     # ================================================================
     # Constriction Factor (Clerc-Kennedy, 2002)
     # ================================================================
     # The constriction factor guarantees convergence when φ = c1 + c2 > 4.
     # Standard recommendation: c1 = c2 = 2.05 (φ = 4.1, χ ≈ 0.7298).
-    # We enforce a minimum to ensure the constriction is always active,
-    # even if the caller passes c1=c2=2.0 (which gives φ=4.0, exactly
-    # on the boundary where χ is undefined).
-    c1_eff = max(c1, 2.05)
-    c2_eff = max(c2, 2.05)
-    phi_total = c1_eff + c2_eff
+    phi_total = c1 + c2
+    if phi_total <= 4.0:
+        raise ValueError(
+            f"Constriction factor requires c1 + c2 > 4, got {phi_total:.2f}. "
+            f"Set PSO_C1 and PSO_C2 >= 2.05 in config.py."
+        )
     chi = 2.0 / abs(2.0 - phi_total - np.sqrt(phi_total ** 2 - 4.0 * phi_total))
 
     # ================================================================
     # Independent Multi-Strategy Initialization (no AO dependency)
     # ================================================================
-    theta_ref = _phase_alignment_init(Phi, h_d, N)
+    theta_ref = _phase_alignment_init(Phi, h_d)
 
     # 20% phase-alignment particles (moderate perturbation σ=0.5)
     n_align = max(1, int(pop_size * 0.2))
@@ -217,8 +145,8 @@ def pso_optimize(Phi, h_d, N, use_practical=True,
     velocities = rng.uniform(-v_max * 0.1, v_max * 0.1, size=(pop_size, N))
 
     # Evaluate initial fitness
-    eval_pos = _quantize(positions, discrete_set) if discrete_set is not None else positions
-    fitness = _eval_batch(eval_pos)
+    eval_pos = quantize_angles(positions, discrete_set) if discrete_set is not None else positions
+    fitness = compute_channel_gain(eval_pos, Phi, h_d, use_practical)
 
     # Personal best
     pbest_pos = positions.copy()
@@ -257,8 +185,8 @@ def pso_optimize(Phi, h_d, N, use_practical=True,
         r1 = rng.random((pop_size, N))
         r2 = rng.random((pop_size, N))
 
-        cognitive = c1_eff * r1 * wrap_angle(pbest_pos - positions)
-        social = c2_eff * r2 * wrap_angle(lbest_pos - positions)
+        cognitive = c1 * r1 * wrap_angle(pbest_pos - positions)
+        social = c2 * r2 * wrap_angle(lbest_pos - positions)
 
         # Constriction factor velocity update (always active)
         velocities = chi * (velocities + cognitive + social)
@@ -270,8 +198,8 @@ def pso_optimize(Phi, h_d, N, use_practical=True,
         positions = wrap_angle(positions + velocities)
 
         # ---- Evaluate fitness ----
-        eval_pos = _quantize(positions, discrete_set) if discrete_set is not None else positions
-        fitness = _eval_batch(eval_pos)
+        eval_pos = quantize_angles(positions, discrete_set) if discrete_set is not None else positions
+        fitness = compute_channel_gain(eval_pos, Phi, h_d, use_practical)
 
         # ---- Update personal bests ----
         improved = fitness > pbest_val
@@ -300,9 +228,11 @@ def pso_optimize(Phi, h_d, N, use_practical=True,
             velocities[worst_idx] = rng.uniform(-v_max * 0.1, v_max * 0.1,
                                                  size=(n_reinit, N))
             # Re-evaluate reinitialized particles
-            eval_reinit = _quantize(positions[worst_idx], discrete_set) \
+            eval_reinit = quantize_angles(positions[worst_idx], discrete_set) \
                 if discrete_set is not None else positions[worst_idx]
-            fitness_reinit = _eval_batch(eval_reinit)
+            fitness_reinit = compute_channel_gain(
+                eval_reinit, Phi, h_d, use_practical
+            )
 
             # Update personal bests for reinitialized particles
             for j, idx in enumerate(worst_idx):
@@ -316,7 +246,7 @@ def pso_optimize(Phi, h_d, N, use_practical=True,
     # Gradient updates ALL elements simultaneously, which can push
     # past the coordinate-wise optima that PSO dynamics may settle near.
     if discrete_set is None:
-        polished_pos, polished_val = _gradient_polish(
+        polished_pos, polished_val = gradient_polish(
             gbest_pos, Phi, h_d, use_practical, n_steps=25, lr_init=0.06)
         if polished_val > gbest_val:
             gbest_pos = polished_pos
@@ -324,36 +254,6 @@ def pso_optimize(Phi, h_d, N, use_practical=True,
 
     # Return the best solution found (quantized if discrete)
     if discrete_set is not None:
-        gbest_pos = _quantize(gbest_pos[np.newaxis, :], discrete_set)[0]
+        gbest_pos = quantize_angles(gbest_pos[np.newaxis, :], discrete_set)[0]
 
     return gbest_pos, gbest_val
-
-
-def _quantize(positions, discrete_set):
-    """
-    Quantize each phase value to the nearest element in the discrete set.
-
-    Parameters
-    ----------
-    positions : ndarray, shape (..., N)
-        Continuous phase values.
-    discrete_set : ndarray, shape (K,)
-        Allowed discrete phase values.
-
-    Returns
-    -------
-    ndarray
-        Quantized positions.
-    """
-    if discrete_set is None:
-        return positions
-
-    # Compute angular distance (handle wrap-around)
-    # For each position element, find nearest discrete value
-    original_shape = positions.shape
-    flat = positions.reshape(-1)
-    # Compute distance to each discrete value
-    diffs = np.abs(wrap_angle(flat[:, np.newaxis] - discrete_set[np.newaxis, :]))
-    nearest_idx = np.argmin(diffs, axis=1)
-    quantized = discrete_set[nearest_idx]
-    return quantized.reshape(original_shape)

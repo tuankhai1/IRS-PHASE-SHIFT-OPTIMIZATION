@@ -1,11 +1,33 @@
-# Python caches
+# Python caches and environments
 __pycache__/
 *.py[cod]
+.venv/
+venv/
 
-# Output files
+# Generated simulation outputs
 results/
-results/*.npz
-results/*.png
 
-# LaTeX
-report.tex
+# LaTeX build files
+*.aux
+*.log
+*.nav
+*.out
+*.snm
+*.toc
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+
+# Local tooling
+tectonic_bin/
+
+# Scratch experiments
+pso_experiment.py
+generate_stagnation_graph.py
+
+# One-off visualization scripts
+generate_visual.py
+generate_contour.py
+generate_convergence.py
+generate_new_3d.py
+recreate_visual.py

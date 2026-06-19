@@ -82,3 +82,19 @@ def wrap_angle(theta):
         Wrapped angle(s).
     """
     return (theta + np.pi) % (2 * np.pi) - np.pi
+
+
+def quantize_angles(theta, discrete_set):
+    """
+    Snap phase values to the nearest allowed angle.
+
+    Angular distance is measured with wrap-around at +/-pi.
+    """
+    theta = np.asarray(theta)
+    discrete_set = np.asarray(discrete_set)
+    flat = theta.reshape(-1)
+    distances = np.abs(
+        wrap_angle(flat[:, np.newaxis] - discrete_set[np.newaxis, :])
+    )
+    nearest = np.argmin(distances, axis=1)
+    return discrete_set[nearest].reshape(theta.shape)

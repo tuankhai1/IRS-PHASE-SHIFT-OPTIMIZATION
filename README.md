@@ -125,32 +125,34 @@ The repository is structured as follows to ensure modularity and scalability:
 
 ```text
 .
-├── config.py                 # System parameters, constants, and hyperparameters
-├── main.py                   # Primary execution script routing simulations for all figures
-├── objective.py              # Objective function and achievable rate calculations
-├── phase_shift_model.py      # Core mathematical definitions for IRS reflection physics
-├── channel_model.py          # Generation of Rayleigh fading channels with path loss
-├── simulation.py             # Simulation engine driving parallelized channel realizations
-├── plot_results.py           # Generation of figures and visualizations using matplotlib
+├── config.py                     # System parameters and optimizer settings
+├── main.py                       # CLI entry point for simulation figures
+├── simulation.py                 # Experiment orchestration
+├── plot_results.py               # Simulation plotting functions
+├── channel_model.py              # Wireless channel generation
+├── objective.py                  # Achievable-rate objective functions
+├── phase_shift_model.py          # Practical IRS reflection model
 ├── algorithms/
-│   ├── ao.py                 # Alternating Optimization algorithm implementation (Baseline)
-│   ├── pso.py                # Particle Swarm Optimization algorithm implementation
-│   └── cmaes.py              # Covariance Matrix Adaptation Evolution Strategy implementation
-├── assets/                   # Saved simulation plots for README documentation
-├── PSO_Report.pdf            # PDF report detailing PSO implementation
-└── PhaseShift_Model.pdf      # Reference paper detailing the phase shift model
+│   ├── ao.py                     # Alternating Optimization baseline
+│   ├── pso.py                    # Particle Swarm Optimization
+│   ├── cmaes.py                  # CMA-ES
+│   └── polishing.py              # Local solution refinement
+├── report.tex                    # Source for the PSO report
+├── assets/                       # Published README/report figures
+├── PSO_Report.pdf                # Compiled PSO report
+└── PhaseShift_Model.pdf          # Reference paper
 ```
 
 ## How to Apply (Usage Guide)
 
 ### Prerequisites
 
-Ensure you have Python 3.8 or higher installed. Clone this repository and install the dependencies:
+Ensure you have Python 3.10 or newer installed. Clone this repository and install the dependencies:
 
 ```bash
 git clone https://github.com/tuankhai1/IRS-PHASE-SHIFT-OPTIMIZATION.git
 cd IRS-PHASE-SHIFT-OPTIMIZATION
-pip install numpy matplotlib scipy
+python -m pip install -r requirements.txt
 ```
 
 ### Running the Simulations
@@ -178,6 +180,14 @@ python main.py --fig 7  # Fig. 7: Discrete phase shifts
 ### Outputs
 
 All simulation results are automatically serialized as `.npz` files and plotted as `.png` files inside the `results/` directory.
+
+### Rebuilding the PSO Report
+
+Compile the included report source with a local Tectonic installation:
+
+```bash
+tectonic report.tex
+```
 
 
 ---

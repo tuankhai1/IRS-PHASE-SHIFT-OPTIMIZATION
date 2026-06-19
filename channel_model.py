@@ -1,8 +1,13 @@
 """
 Channel model for IRS-aided MISO wireless communication system.
 
-Generates Rayleigh fading channels with distance-dependent path loss
+Generates fading channels with distance-dependent path loss
 for the AP-User, IRS-User, and AP-IRS links.
+
+Channel models:
+    - AP→User:  Rayleigh fading (NLoS, α=3.8)
+    - IRS→User: Rayleigh fading (NLoS, α=2.8)
+    - AP→IRS:   Rician fading   (LoS,  α=2.2, K_rice from config)
 
 Geometry:
     AP at (0, 0)
@@ -13,7 +18,8 @@ Geometry:
 import numpy as np
 from config import (
     M, D_AP_IRS, D_VERTICAL, C0,
-    ALPHA_AI, ALPHA_IU, ALPHA_AU
+    ALPHA_AI, ALPHA_IU, ALPHA_AU,
+    K_RICIAN_AI
 )
 
 
@@ -62,9 +68,47 @@ def compute_distances(d_horizontal):
     return d_au, d_iu, d_ai
 
 
+def _generate_rician(shape, path_loss, K_rice, rng):
+    """
+    Generate a Rician fading channel matrix.
+
+    h = sqrt(PL) * [ sqrt(K/(K+1)) * h_LoS  +  sqrt(1/(K+1)) * h_NLoS ]
+
+    The LoS component uses a deterministic uniform-phase steering vector
+    (random phase per element, fixed magnitude) which models the dominant
+    specular path without requiring explicit array geometry.
+
+    Parameters
+    ----------
+    shape : tuple
+        Output shape (e.g. (N, M)).
+    path_loss : float
+        Large-scale path loss coefficient.
+    K_rice : float
+        Rician K-factor in linear scale.
+    rng : np.random.Generator
+
+    Returns
+    -------
+    ndarray, complex
+        Channel matrix of the given shape.
+    """
+    # LoS component: unit-magnitude with random phase (specular)
+    h_los = np.exp(1j * rng.uniform(-np.pi, np.pi, size=shape))
+
+    # NLoS component: Rayleigh ~ CN(0, 1)
+    h_nlos = (rng.standard_normal(shape) + 1j * rng.standard_normal(shape)) / np.sqrt(2)
+
+    # Combine with Rician K-factor weighting
+    h = (np.sqrt(K_rice / (K_rice + 1)) * h_los +
+         np.sqrt(1.0 / (K_rice + 1)) * h_nlos)
+
+    return np.sqrt(path_loss) * h
+
+
 def generate_channels(N, d_horizontal, rng=None):
     """
-    Generate one realization of Rayleigh fading channels with path loss.
+    Generate one realization of fading channels with path loss.
 
     Parameters
     ----------
@@ -78,11 +122,7 @@ def generate_channels(N, d_horizontal, rng=None):
     Returns
     -------
     h_d : ndarray, shape (M,)
-        AP-to-User direct channel (complex).
-    h_r : ndarray, shape (N,)
-        IRS-to-User channel (complex).
-    G : ndarray, shape (N, M)
-        AP-to-IRS channel (complex).
+        AP-to-User direct channel (complex, Rayleigh).
     Phi : ndarray, shape (N, M)
         Combined channel matrix Φ = diag(h_r^H) @ G.
     """
@@ -96,13 +136,16 @@ def generate_channels(N, d_horizontal, rng=None):
     pl_iu = compute_path_loss(d_iu, ALPHA_IU)
     pl_ai = compute_path_loss(d_ai, ALPHA_AI)
 
-    # Rayleigh fading: each element ~ CN(0, PL)
-    # CN(0, σ²) = N(0, σ²/2) + j*N(0, σ²/2)
+    # AP→User: Rayleigh fading (NLoS, severe path loss)
     h_d = np.sqrt(pl_au / 2) * (rng.standard_normal(M) + 1j * rng.standard_normal(M))
+
+    # IRS→User: Rayleigh fading (NLoS)
     h_r = np.sqrt(pl_iu / 2) * (rng.standard_normal(N) + 1j * rng.standard_normal(N))
-    G = np.sqrt(pl_ai / 2) * (rng.standard_normal((N, M)) + 1j * rng.standard_normal((N, M)))
+
+    # AP→IRS: Rician fading (strong LoS, low path-loss exponent α=2.2)
+    G = _generate_rician((N, M), pl_ai, K_RICIAN_AI, rng)
 
     # Combined channel matrix: Φ = diag(h_r^H) @ G
     Phi = np.diag(h_r.conj()) @ G
 
-    return h_d, h_r, G, Phi
+    return h_d, Phi

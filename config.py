@@ -38,6 +38,12 @@ ALPHA_AI = 2.2   # AP  -> IRS  (strong LoS assumed)
 ALPHA_IU = 2.8   # IRS -> User
 ALPHA_AU = 3.8   # AP  -> User (NLoS, more severe)
 
+# Rician K-factor for AP-IRS link (dB).  The low path-loss exponent
+# α_AI = 2.2 implies a dominant Line-of-Sight component.  A Rician
+# channel model with K ≈ 10 dB is standard for such links.
+K_RICIAN_AI_DB = 10
+K_RICIAN_AI = 10 ** (K_RICIAN_AI_DB / 10)   # ~10.0 linear
+
 # ============================================================
 # Practical Phase Shift Model:  β(θ) = (1-β_min)*((sin(θ-φ)+1)/2)^k + β_min
 # ============================================================
@@ -61,13 +67,13 @@ AO_TOL = 1e-6               # Convergence tolerance (relative change)
 AO_1D_SEARCH_POINTS = 1000  # Number of points for 1D exhaustive search
 
 # --- Particle Swarm Optimization (PSO) ---
+# Uses the Clerc-Kennedy constriction factor (requires c1+c2 > 4).
+# Standard recommendation: c1 = c2 = 2.05, giving χ ≈ 0.7298.
 PSO_POP_SIZE = 50           # Number of particles
 PSO_MAX_ITER = 200          # Maximum iterations
-PSO_W_MAX = 0.9             # Initial inertia weight
-PSO_W_MIN = 0.4             # Final inertia weight
-PSO_C1 = 2.0                # Cognitive coefficient
-PSO_C2 = 2.0                # Social coefficient
-PSO_V_MAX = np.pi           # Velocity clamp
+PSO_C1 = 2.05               # Cognitive coefficient (constriction requirement)
+PSO_C2 = 2.05               # Social coefficient  (constriction requirement)
+PSO_V_MAX = np.pi           # Velocity clamp (radians)
 
 # --- CMA-ES ---
 CMAES_MAX_ITER = 300        # Maximum generations

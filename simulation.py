@@ -17,12 +17,8 @@ import time
 import os
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
-from config import (
-    M, N_DEFAULT, PT, SIGMA2, NUM_REALIZATIONS, SEED,
-    BETA_MIN, K_PARAM, PHI_PARAM
-)
+from config import N_DEFAULT, NUM_REALIZATIONS, SEED
 from channel_model import generate_channels
-from phase_shift_model import reflection_vector
 from objective import compute_channel_gain, compute_rate, compute_lower_bound_rate
 from algorithms.ao import ao_optimize
 from algorithms.pso import pso_optimize
@@ -34,7 +30,7 @@ from algorithms.cmaes import cmaes_optimize
 _N_WORKERS = min(max((os.cpu_count() or 2) // 2, 2), 12)
 
 
-def _run_single_realization(N, d_horizontal, schemes, rng, discrete_set=None):
+def _run_single_realization(N, d_horizontal, schemes, rng):
     """
     Run all schemes for a single channel realization.
 
@@ -47,15 +43,13 @@ def _run_single_realization(N, d_horizontal, schemes, rng, discrete_set=None):
     schemes : list of str
         Which schemes to evaluate.
     rng : np.random.Generator
-    discrete_set : ndarray, optional
-
     Returns
     -------
     dict
         Mapping scheme name -> achievable rate.
     """
     # Generate channels using the base rng
-    h_d, h_r, G, Phi = generate_channels(N, d_horizontal, rng)
+    h_d, Phi = generate_channels(N, d_horizontal, rng)
     results = {}
 
     # Create independent rng for each scheme to guarantee that adding/removing
@@ -79,15 +73,14 @@ def _run_single_realization(N, d_horizontal, schemes, rng, discrete_set=None):
 
         elif scheme == 'ao_practical_prop1':
             # AO with practical model, Proposition 1
-            theta, gain = ao_optimize(Phi, h_d, N, method='prop1',
-                                       use_practical=True, rng=s_rng)
+            _, gain = ao_optimize(Phi, h_d, N, method='prop1',
+                                  use_practical=True, rng=s_rng)
             results[scheme] = compute_rate(gain)
 
         elif scheme == 'ao_practical_1d':
             # AO with practical model, 1D search
-            theta, gain = ao_optimize(Phi, h_d, N, method='1d_search',
-                                       use_practical=True,
-                                       discrete_set=discrete_set, rng=s_rng)
+            _, gain = ao_optimize(Phi, h_d, N, method='1d_search',
+                                  use_practical=True, rng=s_rng)
             results[scheme] = compute_rate(gain)
 
         elif scheme == 'ideal_design_practical_eval':
@@ -100,13 +93,13 @@ def _run_single_realization(N, d_horizontal, schemes, rng, discrete_set=None):
             results[scheme] = compute_lower_bound_rate(h_d)
 
         elif scheme == 'pso_practical':
-            theta, gain = pso_optimize(Phi, h_d, N, use_practical=True,
-                                        discrete_set=discrete_set, rng=s_rng)
+            _, gain = pso_optimize(Phi, h_d, N, use_practical=True,
+                                   rng=s_rng)
             results[scheme] = compute_rate(gain)
 
         elif scheme == 'cmaes_practical':
-            theta, gain = cmaes_optimize(Phi, h_d, N, use_practical=True,
-                                          discrete_set=discrete_set, rng=s_rng)
+            _, gain = cmaes_optimize(Phi, h_d, N, use_practical=True,
+                                     rng=s_rng)
             results[scheme] = compute_rate(gain)
 
         # --- Discrete phase shift schemes (for Fig. 7) ---
@@ -114,18 +107,18 @@ def _run_single_realization(N, d_horizontal, schemes, rng, discrete_set=None):
             b = int(scheme.split('_')[-1])
             K = 2 ** b
             d_set = np.linspace(-np.pi, np.pi, K, endpoint=False)
-            theta, gain = ao_optimize(Phi, h_d, N, method='1d_search',
-                                       use_practical=True,
-                                       discrete_set=d_set, rng=s_rng)
+            _, gain = ao_optimize(Phi, h_d, N, method='1d_search',
+                                  use_practical=True,
+                                  discrete_set=d_set, rng=s_rng)
             results[scheme] = compute_rate(gain)
 
         elif scheme.startswith('ao_ideal_discrete_'):
             b = int(scheme.split('_')[-1])
             K = 2 ** b
             d_set = np.linspace(-np.pi, np.pi, K, endpoint=False)
-            theta, gain = ao_optimize(Phi, h_d, N, method='1d_search',
-                                       use_practical=False,
-                                       discrete_set=d_set, rng=s_rng)
+            _, gain = ao_optimize(Phi, h_d, N, method='1d_search',
+                                  use_practical=False,
+                                  discrete_set=d_set, rng=s_rng)
             # For ideal discrete, evaluate with ideal model
             results[scheme] = compute_rate(gain)
 
@@ -142,9 +135,9 @@ def _realization_worker(args):
     Creates a fresh RNG from the given seed and runs one realization.
     This function is at module level for pickling (multiprocessing on Windows).
     """
-    N, d_horizontal, schemes, seed, discrete_set = args
+    N, d_horizontal, schemes, seed = args
     rng = np.random.default_rng(seed)
-    return _run_single_realization(N, d_horizontal, list(schemes), rng, discrete_set)
+    return _run_single_realization(N, d_horizontal, list(schemes), rng)
 
 
 def _run_parallel(param_values, param_name, schemes, num_realizations,
@@ -175,8 +168,6 @@ def _run_parallel(param_values, param_name, schemes, num_realizations,
     results : dict
         Mapping scheme name -> ndarray of average rates.
     """
-    results = {s: np.zeros(len(param_values)) for s in schemes}
-
     # Pre-generate all tasks with deterministic seeds
     all_tasks = []
     all_indices = []
@@ -185,7 +176,7 @@ def _run_parallel(param_values, param_name, schemes, num_realizations,
         d = float(pval) if param_name == 'd' else fixed_d
         for r in range(num_realizations):
             seed = int(master_rng.integers(0, 2**31))
-            all_tasks.append((N, d, tuple(schemes), seed, None))
+            all_tasks.append((N, d, tuple(schemes), seed))
             all_indices.append((pi, r))
 
     total_tasks = len(all_tasks)
@@ -232,11 +223,8 @@ def _run_parallel(param_values, param_name, schemes, num_realizations,
                 print(f"  Progress: {i+1:>5}/{total_tasks} "
                       f"| elapsed: {elapsed:.0f}s | ETA: {eta:.0f}s")
 
-    for s in schemes:
-        results[s] = np.mean(rates_all[s], axis=1)
-
     print(f"  Completed in {time.time() - start_time:.1f}s\n")
-    return results
+    return {s: np.mean(rates_all[s], axis=1) for s in schemes}
 
 
 def run_simulation_fig5(num_realizations=NUM_REALIZATIONS, save_path=None):

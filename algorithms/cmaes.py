@@ -27,9 +27,10 @@ Implementation follows:
 """
 
 import numpy as np
-from phase_shift_model import wrap_angle, beta, reflection_vector
+from phase_shift_model import quantize_angles, wrap_angle
 from objective import compute_channel_gain
-from config import CMAES_MAX_ITER, CMAES_SIGMA0, CMAES_TOL, BETA_MIN, K_PARAM, PHI_PARAM
+from algorithms.polishing import gradient_polish
+from config import CMAES_MAX_ITER, CMAES_SIGMA0, CMAES_TOL
 
 
 
@@ -92,7 +93,7 @@ def _screening_init(Phi, h_d, N, use_practical, discrete_set, rng):
     # Evaluate all candidates
     eval_candidates = wrap_angle(candidates)
     if discrete_set is not None:
-        eval_candidates = _quantize_batch(eval_candidates, discrete_set)
+        eval_candidates = quantize_angles(eval_candidates, discrete_set)
     fitness = compute_channel_gain(eval_candidates, Phi, h_d, use_practical)
 
     # Return the best candidate
@@ -100,86 +101,6 @@ def _screening_init(Phi, h_d, N, use_practical, discrete_set, rng):
     return candidates[best_idx].copy()
 
 
-def _gradient_polish(theta, Phi, h_d, use_practical, n_steps=20, lr_init=0.05):
-    """
-    Refine a phase shift solution using analytical gradient ascent.
-
-    Unlike AO's coordinate descent (which optimizes one element at a time),
-    gradient ascent updates ALL N elements simultaneously in the direction
-    of steepest increase. This can escape coordinate-wise local optima
-    where no single-element improvement exists but a multi-element step
-    would improve the objective.
-
-    The gradient is computed analytically from the channel model:
-        ∂f/∂θ_n = 2 Re(∂v_n*/∂θ_n · q_n)
-    where q = Φ (v^H Φ + h_d^H)^H is the back-projected effective channel.
-
-    Parameters
-    ----------
-    theta : ndarray, shape (N,)
-        Starting phase shift vector.
-    Phi : ndarray, shape (N, M)
-        Combined channel matrix.
-    h_d : ndarray, shape (M,)
-        Direct channel.
-    use_practical : bool
-        Whether to use practical phase shift model.
-    n_steps : int
-        Maximum number of gradient ascent steps.
-    lr_init : float
-        Initial learning rate.
-
-    Returns
-    -------
-    best_theta : ndarray, shape (N,)
-        Refined phase shift vector.
-    best_obj : float
-        Refined channel gain.
-    """
-    theta = wrap_angle(theta.copy())
-    best_obj = compute_channel_gain(theta, Phi, h_d, use_practical)
-    best_theta = theta.copy()
-    lr = lr_init
-
-    for _ in range(n_steps):
-        # ---- Compute effective channel ----
-        v = reflection_vector(theta, use_practical)    # (N,)
-        h_eff = v.conj() @ Phi + h_d.conj()            # (M,)
-
-        # ---- Back-project to element space ----
-        q = Phi @ h_eff.conj()                          # (N,)
-
-        # ---- Analytical gradient ----
-        if use_practical:
-            # ∂v_n*/∂θ_n = (β'(θ_n) - jβ(θ_n)) · exp(-jθ_n)
-            b = beta(theta)                              # (N,)
-            s = (np.sin(theta - PHI_PARAM) + 1) / 2
-            b_prime = ((1 - BETA_MIN) * K_PARAM *
-                       np.maximum(s, 1e-20) ** (K_PARAM - 1) *
-                       np.cos(theta - PHI_PARAM) / 2)
-            dv_conj = (b_prime - 1j * b) * np.exp(-1j * theta)
-        else:
-            # Ideal model: ∂v_n*/∂θ_n = -j exp(-jθ_n)
-            dv_conj = -1j * np.exp(-1j * theta)
-
-        grad = 2.0 * np.real(dv_conj * q)               # (N,)
-
-        # ---- Gradient ascent with adaptive step size ----
-        theta_new = wrap_angle(theta + lr * grad)
-        obj_new = compute_channel_gain(theta_new, Phi, h_d, use_practical)
-
-        if obj_new > best_obj:
-            best_obj = obj_new
-            best_theta = theta_new.copy()
-            theta = theta_new
-            lr = min(lr * 1.1, 0.5)    # cautiously increase
-        else:
-            lr *= 0.5                   # backtrack
-            theta = best_theta.copy()   # revert to best
-            if lr < 1e-8:
-                break                   # converged
-
-    return best_theta, best_obj
 
 
 def _run_cmaes_single(Phi, h_d, N, use_practical, discrete_set,
@@ -202,7 +123,6 @@ def _run_cmaes_single(Phi, h_d, N, use_practical, discrete_set,
     -------
     best_theta : ndarray, shape (N,)
     best_obj : float
-    gens_used : int
     """
     # ================================================================
     # Strategy Parameters (from Hansen's tutorial, with 2x population)
@@ -267,20 +187,20 @@ def _run_cmaes_single(Phi, h_d, N, use_practical, discrete_set,
         # ---- Evaluate fitness (wrap only for evaluation) ----
         eval_x = wrap_angle(x)
         if discrete_set is not None:
-            eval_x = _quantize_batch(eval_x, discrete_set)
+            eval_x = quantize_angles(eval_x, discrete_set)
         fitness = compute_channel_gain(eval_x, Phi, h_d, use_practical)
 
         # ---- Sort by fitness (descending — we maximize) ----
         ranking = np.argsort(-fitness)
         x_sorted = x[ranking]
-        z_sorted = z[ranking]
-
         # ---- Update best ----
         if fitness[ranking[0]] > best_obj:
             best_obj = fitness[ranking[0]]
             best_theta = wrap_angle(x_sorted[0].copy())
             if discrete_set is not None:
-                best_theta = _quantize_batch(best_theta[np.newaxis, :], discrete_set)[0]
+                best_theta = quantize_angles(
+                    best_theta[np.newaxis, :], discrete_set
+                )[0]
 
         # ---- Update mean (unwrapped Euclidean) ----
         m_old = m.copy()
@@ -333,9 +253,9 @@ def _run_cmaes_single(Phi, h_d, N, use_practical, discrete_set,
 
         # ---- Convergence check ----
         if sigma * np.max(D) < tol:
-            return best_theta, best_obj, gen + 1
+            return best_theta, best_obj
 
-    return best_theta, best_obj, max_gen
+    return best_theta, best_obj
 
 
 def cmaes_optimize(Phi, h_d, N, use_practical=True,
@@ -399,25 +319,29 @@ def cmaes_optimize(Phi, h_d, N, use_practical=True,
     best_theta_global = None
     best_obj_global = -np.inf
 
-    for start in range(n_starts):
+    for _ in range(n_starts):
+        # Spawn an independent child RNG for each start so that
+        # adding/removing starts doesn't alter other starts' behavior.
+        start_rng = np.random.default_rng(rng.integers(0, 2**63))
+
         # ---- Independent screening for this start ----
-        m_init = _screening_init(Phi, h_d, N, use_practical, discrete_set, rng)
+        m_init = _screening_init(Phi, h_d, N, use_practical, discrete_set, start_rng)
 
         # Light gradient refinement on screened starting point
         if discrete_set is None:
-            m_init, _ = _gradient_polish(m_init, Phi, h_d, use_practical, n_steps=5)
+            m_init, _ = gradient_polish(m_init, Phi, h_d, use_practical, n_steps=5)
 
         sigma = min(sigma0, np.pi / 3)
 
         # ---- Run CMA-ES from this starting point ----
-        best_theta, best_obj, _ = _run_cmaes_single(
+        best_theta, best_obj = _run_cmaes_single(
             Phi, h_d, N, use_practical, discrete_set,
-            m_init, sigma, gens_per_start, tol, rng
+            m_init, sigma, gens_per_start, tol, start_rng
         )
 
         # ---- Heavy gradient polish on CMA-ES result ----
         if discrete_set is None:
-            polished, polished_obj = _gradient_polish(
+            polished, polished_obj = gradient_polish(
                 best_theta, Phi, h_d, use_practical,
                 n_steps=30, lr_init=0.08)
             if polished_obj > best_obj:
@@ -430,24 +354,3 @@ def cmaes_optimize(Phi, h_d, N, use_practical=True,
             best_theta_global = best_theta.copy()
 
     return best_theta_global, best_obj_global
-
-
-def _quantize_batch(positions, discrete_set):
-    """
-    Quantize positions to nearest discrete phase values.
-
-    Parameters
-    ----------
-    positions : ndarray, shape (..., N)
-    discrete_set : ndarray, shape (K,)
-
-    Returns
-    -------
-    ndarray
-        Quantized positions.
-    """
-    original_shape = positions.shape
-    flat = positions.reshape(-1)
-    diffs = np.abs(wrap_angle(flat[:, np.newaxis] - discrete_set[np.newaxis, :]))
-    nearest_idx = np.argmin(diffs, axis=1)
-    return discrete_set[nearest_idx].reshape(original_shape)

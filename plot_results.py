@@ -4,10 +4,8 @@ Plotting utilities for generating publication-quality figures.
 Reproduces the paper's Figs. 5, 6, and 7 with additional PSO and CMA-ES curves.
 """
 
-import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
-import os
 
 
 # ============================================================

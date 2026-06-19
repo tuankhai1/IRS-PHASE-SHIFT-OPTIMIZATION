@@ -12,12 +12,9 @@ Reference: Algorithm 1, Section IV in the paper.
 """
 
 import numpy as np
-from phase_shift_model import beta, reflection_vector, wrap_angle
+from phase_shift_model import beta, reflection_vector
 from objective import compute_channel_gain
-from config import (
-    AO_MAX_ITER, AO_TOL, AO_1D_SEARCH_POINTS,
-    BETA_MIN, K_PARAM, PHI_PARAM
-)
+from config import AO_MAX_ITER, AO_TOL, AO_1D_SEARCH_POINTS
 
 
 
@@ -75,7 +72,6 @@ def _compute_phi_n(n, v, Psi, hd_hat):
     complex
         The value ϕ_n.
     """
-    N = len(v)
     # Sum Ψ_{n,m} * v_m for m ≠ n
     psi_sum = Psi[n, :] @ v - Psi[n, n] * v[n]
     return 2 * (psi_sum + hd_hat[n])
@@ -114,8 +110,7 @@ def _solve_p2_proposition1(psi_nn, phi_n):
     return _CANDIDATES[np.argmax(f_vals)]
 
 
-def _solve_p2_1d_search(psi_nn, phi_n, search_points=AO_1D_SEARCH_POINTS,
-                         discrete_set=None):
+def _solve_p2_1d_search(psi_nn, phi_n, discrete_set=None):
     """
     Solve sub-problem (P2) via exhaustive 1D search with precomputed caches.
 
@@ -125,8 +120,6 @@ def _solve_p2_1d_search(psi_nn, phi_n, search_points=AO_1D_SEARCH_POINTS,
         Ψ_{n,n}
     phi_n : complex
         ϕ_n
-    search_points : int
-        Number of points to search (for continuous case).
     discrete_set : ndarray, optional
         If provided, search only over these discrete phase values.
 
@@ -202,8 +195,8 @@ def ao_optimize(Phi, h_d, N, method='prop1', use_practical=True,
     if theta_init is not None:
         theta = theta_init.copy()
     else:
-        # Random from {π, -π} as in the paper
-        theta = rng.choice([np.pi, -np.pi], size=N).astype(float)
+        # Uniform random initialization over [-π, π]
+        theta = rng.uniform(-np.pi, np.pi, size=N)
 
     if discrete_set is not None:
         # Snap to nearest discrete value
@@ -214,7 +207,7 @@ def ao_optimize(Phi, h_d, N, method='prop1', use_practical=True,
     v = reflection_vector(theta, use_practical)
     obj_prev = compute_channel_gain(theta, Phi, h_d, use_practical)
 
-    for iteration in range(max_iter):
+    for _ in range(max_iter):
         for n in range(N):
             phi_n = _compute_phi_n(n, v, Psi, hd_hat)
             psi_nn = np.real(Psi[n, n])
@@ -238,4 +231,3 @@ def ao_optimize(Phi, h_d, N, method='prop1', use_practical=True,
         obj_prev = obj_curr
 
     return theta, obj_curr
-

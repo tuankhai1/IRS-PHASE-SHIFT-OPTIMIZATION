@@ -13,10 +13,9 @@ Usage:
 
 import argparse
 import os
-import sys
 import numpy as np
 import matplotlib
-matplotlib.use('Agg')  # Non-interactive backend for saving figures
+matplotlib.use('Agg')
 
 from simulation import run_simulation_fig5, run_simulation_fig6, run_simulation_fig7
 from plot_results import plot_fig5, plot_fig6, plot_fig7
@@ -62,8 +61,8 @@ def main():
             num_realizations=num_real,
             save_path=os.path.join(out_dir, 'results_fig5.npz')
         )
-        fig5 = plot_fig5(results5,
-                         save_path=os.path.join(out_dir, 'fig5_rate_vs_distance.png'))
+        plot_fig5(results5,
+                  save_path=os.path.join(out_dir, 'fig5_rate_vs_distance.png'))
         print_summary(results5, 'Fig. 5', 'd_values')
 
     # ---- Fig. 6 ----
@@ -72,8 +71,8 @@ def main():
             num_realizations=num_real,
             save_path=os.path.join(out_dir, 'results_fig6.npz')
         )
-        fig6 = plot_fig6(results6,
-                         save_path=os.path.join(out_dir, 'fig6_rate_vs_N.png'))
+        plot_fig6(results6,
+                  save_path=os.path.join(out_dir, 'fig6_rate_vs_N.png'))
         print_summary(results6, 'Fig. 6', 'N_values')
 
     # ---- Fig. 7 ----
@@ -82,8 +81,8 @@ def main():
             num_realizations=num_real,
             save_path=os.path.join(out_dir, 'results_fig7.npz')
         )
-        fig7 = plot_fig7(results7,
-                         save_path=os.path.join(out_dir, 'fig7_discrete_phases.png'))
+        plot_fig7(results7,
+                  save_path=os.path.join(out_dir, 'fig7_discrete_phases.png'))
         print_summary(results7, 'Fig. 7', 'd_values')
 
     print(f"\n{'#'*60}")

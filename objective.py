@@ -41,11 +41,15 @@ def compute_channel_gain(theta_vec, Phi, h_d, use_practical=True):
     """
     if theta_vec.ndim == 1:
         # Single evaluation
+        assert theta_vec.shape[0] == Phi.shape[0], (
+            f"theta_vec length {theta_vec.shape[0]} != N={Phi.shape[0]}")
         v = reflection_vector(theta_vec, use_practical)
         combined = v.conj() @ Phi + h_d.conj()     # shape (M,)
         return np.sum(np.abs(combined) ** 2)
     else:
         # Batch evaluation: theta_vec is (pop_size, N)
+        assert theta_vec.shape[1] == Phi.shape[0], (
+            f"theta_vec dim-1 {theta_vec.shape[1]} != N={Phi.shape[0]}")
         v = reflection_vector(theta_vec, use_practical)      # (pop_size, N)
         combined = v.conj() @ Phi + h_d.conj()[np.newaxis, :]  # (pop_size, M)
         return np.sum(np.abs(combined) ** 2, axis=1)            # (pop_size,)
