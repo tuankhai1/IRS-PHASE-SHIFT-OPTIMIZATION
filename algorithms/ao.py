@@ -17,7 +17,6 @@ from objective import compute_channel_gain
 from config import AO_MAX_ITER, AO_TOL, AO_1D_SEARCH_POINTS
 
 
-
 # ============================================================
 # Precomputed lookup tables for 1D search
 # ============================================================
@@ -75,9 +74,6 @@ def _compute_phi_n(n, v, Psi, hd_hat):
     # Sum Ψ_{n,m} * v_m for m ≠ n
     psi_sum = Psi[n, :] @ v - Psi[n, n] * v[n]
     return 2 * (psi_sum + hd_hat[n])
-
-
-
 
 
 def _solve_p2_proposition1(psi_nn, phi_n):

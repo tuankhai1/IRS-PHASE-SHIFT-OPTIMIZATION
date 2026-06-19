@@ -33,7 +33,6 @@ from algorithms.polishing import gradient_polish
 from config import CMAES_MAX_ITER, CMAES_SIGMA0, CMAES_TOL
 
 
-
 def _screening_init(Phi, h_d, N, use_practical, discrete_set, rng):
     """
     Find a high-quality starting point by screening many random candidates.
@@ -101,8 +100,6 @@ def _screening_init(Phi, h_d, N, use_practical, discrete_set, rng):
     return candidates[best_idx].copy()
 
 
-
-
 def _run_cmaes_single(Phi, h_d, N, use_practical, discrete_set,
                        m_init, sigma_init, max_gen, tol, rng):
     """
@@ -166,7 +163,6 @@ def _run_cmaes_single(Phi, h_d, N, use_practical, discrete_set,
     # Track best solution
     best_theta = wrap_angle(m.copy())
     best_obj = -np.inf
-
 
     # Counter for eigendecomposition
     eigen_update_interval = max(1, lam // (10 * N))

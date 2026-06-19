@@ -1,13 +1,14 @@
 # Python caches and environments
 __pycache__/
 *.py[cod]
+*.egg-info/
 .venv/
 venv/
 
 # Generated simulation outputs
 results/
 
-# LaTeX build files
+# LaTeX build artifacts
 *.aux
 *.log
 *.nav
@@ -17,17 +18,14 @@ results/
 *.fls
 *.fdb_latexmk
 *.synctex.gz
+report.tex
 
 # Local tooling
 tectonic_bin/
 
-# Scratch experiments
-pso_experiment.py
-generate_stagnation_graph.py
-
-# One-off visualization scripts
-generate_visual.py
-generate_contour.py
-generate_convergence.py
-generate_new_3d.py
-recreate_visual.py
+# IDE and OS artifacts
+.vscode/
+.idea/
+*.swp
+Thumbs.db
+.DS_Store

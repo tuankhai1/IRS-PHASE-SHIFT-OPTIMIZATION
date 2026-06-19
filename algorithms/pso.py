@@ -35,7 +35,6 @@ from config import (
 )
 
 
-
 def _phase_alignment_init(Phi, h_d):
     """
     Compute a starting phase vector by aligning the reflected path
@@ -54,8 +53,6 @@ def _phase_alignment_init(Phi, h_d):
     """
     projection = Phi @ h_d  # shape (N,)
     return np.angle(projection)
-
-
 
 
 def pso_optimize(Phi, h_d, N, use_practical=True,

@@ -48,59 +48,59 @@ Here are the simulation results demonstrating the performance of the various alg
 
 Demonstrates how the system performs as the distance between the Access Point and the user increases.
 <p align="center">
-  <img src="assets/fig5_rate_vs_distance.png?v=6" alt="Rate vs Distance" width="600"/>
+  <img src="assets/fig5_rate_vs_distance.png?v=7" alt="Rate vs Distance" width="600"/>
 </p>
 
 #### Detailed Result Table (Fig. 5)
 
 | Scheme | 480 | 482 | 484 | 486 | 488 | 490 | 492 | 494 | 496 | 498 | 500 |
 |:---| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| upper_bound | 0.3354 | 0.3580 | 0.3926 | 0.4436 | 0.5260 | 0.6467 | 0.8538 | 1.2305 | 1.9588 | 3.3039 | 4.5096 |
-| ao_practical_prop1 | 0.2672 | 0.2762 | 0.2945 | 0.3192 | 0.3643 | 0.4278 | 0.5428 | 0.7689 | 1.2535 | 2.3301 | 3.4178 |
-| ao_practical_1d | 0.2672 | 0.2762 | 0.2945 | 0.3192 | 0.3643 | 0.4278 | 0.5428 | 0.7689 | 1.2535 | 2.3301 | 3.4178 |
-| ideal_design_practical_eval | 0.2544 | 0.2610 | 0.2762 | 0.2961 | 0.3334 | 0.3853 | 0.4799 | 0.6661 | 1.0700 | 1.9858 | 2.9552 |
+| upper_bound | 0.3464 | 0.3690 | 0.4071 | 0.4596 | 0.5501 | 0.6777 | 0.9020 | 1.2981 | 2.0564 | 3.4159 | 4.6232 |
+| ao_practical_prop1 | 0.2725 | 0.2823 | 0.3016 | 0.3291 | 0.3770 | 0.4444 | 0.5713 | 0.8044 | 1.3157 | 2.4194 | 3.5354 |
+| ao_practical_1d | 0.2725 | 0.2823 | 0.3016 | 0.3291 | 0.3771 | 0.4444 | 0.5712 | 0.8046 | 1.3162 | 2.4210 | 3.5340 |
+| ideal_design_practical_eval | 0.2589 | 0.2663 | 0.2821 | 0.3043 | 0.3444 | 0.3989 | 0.5033 | 0.6926 | 1.1205 | 2.0680 | 3.0390 |
 | lower_bound | 0.1747 | 0.1683 | 0.1664 | 0.1610 | 0.1618 | 0.1576 | 0.1584 | 0.1565 | 0.1556 | 0.1540 | 0.1501 |
-| pso_practical | 0.2664 | 0.2753 | 0.2934 | 0.3178 | 0.3623 | 0.4249 | 0.5381 | 0.7598 | 1.2320 | 2.2818 | 3.3522 |
-| cmaes_practical | 0.2669 | 0.2758 | 0.2941 | 0.3186 | 0.3634 | 0.4266 | 0.5407 | 0.7648 | 1.2432 | 2.3038 | 3.3808 |
+| pso_practical | 0.2717 | 0.2813 | 0.3003 | 0.3274 | 0.3748 | 0.4410 | 0.5656 | 0.7937 | 1.2950 | 2.3725 | 3.4643 |
+| cmaes_practical | 0.2723 | 0.2820 | 0.3012 | 0.3285 | 0.3763 | 0.4433 | 0.5694 | 0.8006 | 1.3091 | 2.4000 | 3.5007 |
 
 ### 2. Achievable Rate vs. Number of Reflecting Elements (N)
 
 Illustrates the scaling behavior of the achievable rate as more IRS elements are added.
 <p align="center">
-  <img src="assets/fig6_rate_vs_N.png?v=6" alt="Rate vs N" width="600"/>
+  <img src="assets/fig6_rate_vs_N.png?v=7" alt="Rate vs N" width="600"/>
 </p>
 
 #### Detailed Result Table (Fig. 6)
 
 | Scheme | 10 | 20 | 30 | 40 | 50 | 60 | 70 | 80 |
 |:---| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| upper_bound | 1.0105 | 1.9065 | 2.6857 | 3.2936 | 3.8243 | 4.2746 | 4.6474 | 5.0021 |
-| ao_practical_prop1 | 0.6559 | 1.2447 | 1.8150 | 2.3041 | 2.7730 | 3.1611 | 3.4979 | 3.8357 |
-| ao_practical_1d | 0.6559 | 1.2447 | 1.8150 | 2.3041 | 2.7730 | 3.1611 | 3.4979 | 3.8357 |
-| ideal_design_practical_eval | 0.5522 | 1.0364 | 1.5230 | 1.9538 | 2.3916 | 2.7599 | 3.0815 | 3.4062 |
+| upper_bound | 1.0496 | 1.9901 | 2.7857 | 3.4050 | 3.9433 | 4.4015 | 4.7774 | 5.1355 |
+| ao_practical_prop1 | 0.6718 | 1.3046 | 1.9039 | 2.4091 | 2.8728 | 3.2787 | 3.6207 | 3.9507 |
+| ao_practical_1d | 0.6719 | 1.3049 | 1.9043 | 2.4093 | 2.8743 | 3.2769 | 3.6190 | 3.9555 |
+| ideal_design_practical_eval | 0.5669 | 1.0902 | 1.5944 | 2.0568 | 2.4811 | 2.8479 | 3.1870 | 3.4979 |
 | lower_bound | 0.1490 | 0.1575 | 0.1550 | 0.1478 | 0.1522 | 0.1476 | 0.1506 | 0.1463 |
-| pso_practical | 0.6560 | 1.2429 | 1.7981 | 2.2530 | 2.6837 | 3.0273 | 3.3247 | 3.6258 |
-| cmaes_practical | 0.6559 | 1.2432 | 1.8046 | 2.2770 | 2.7268 | 3.0927 | 3.4089 | 3.7262 |
+| pso_practical | 0.6723 | 1.3039 | 1.8887 | 2.3639 | 2.7852 | 3.1478 | 3.4525 | 3.7544 |
+| cmaes_practical | 0.6722 | 1.3035 | 1.8943 | 2.3909 | 2.8375 | 3.2252 | 3.5506 | 3.8743 |
 
 ### 3. Impact of Discrete Phase Shifts
 
 Evaluates the performance degradation when the IRS is constrained to low-resolution discrete phase shifts (e.g., 1-bit, 2-bit, or 3-bit).
 <p align="center">
-  <img src="assets/fig7_discrete_phases.png?v=6" alt="Discrete Phase Shifts" width="600"/>
+  <img src="assets/fig7_discrete_phases.png?v=7" alt="Discrete Phase Shifts" width="600"/>
 </p>
 
 #### Detailed Result Table (Fig. 7)
 
 | Scheme | 400 | 420 | 440 | 460 | 480 | 498 |
 |:---| ---: | ---: | ---: | ---: | ---: | ---: |
-| upper_bound | 0.3337 | 0.2920 | 0.2591 | 0.2557 | 0.3328 | 3.3028 |
+| upper_bound | 0.3346 | 0.2933 | 0.2609 | 0.2593 | 0.3426 | 3.4098 |
 | lower_bound | 0.3155 | 0.2682 | 0.2255 | 0.1979 | 0.1723 | 0.1501 |
-| ao_practical_discrete_1 | 0.3223 | 0.2770 | 0.2380 | 0.2192 | 0.2279 | 1.6485 |
-| ao_ideal_discrete_1 | 0.3271 | 0.2832 | 0.2467 | 0.2340 | 0.2707 | 2.4467 |
-| ao_practical_discrete_2 | 0.3247 | 0.2802 | 0.2424 | 0.2268 | 0.2489 | 2.0150 |
-| ao_ideal_discrete_2 | 0.3308 | 0.2881 | 0.2536 | 0.2461 | 0.3046 | 2.8653 |
-| ao_practical_discrete_3 | 0.3260 | 0.2818 | 0.2447 | 0.2308 | 0.2598 | 2.2339 |
-| ao_ideal_discrete_3 | 0.3313 | 0.2888 | 0.2546 | 0.2478 | 0.3089 | 2.9126 |
+| ao_practical_discrete_1 | 0.3227 | 0.2775 | 0.2386 | 0.2202 | 0.2314 | 1.6933 |
+| ao_ideal_discrete_1 | 0.3276 | 0.2841 | 0.2480 | 0.2364 | 0.2764 | 2.5308 |
+| ao_practical_discrete_2 | 0.3252 | 0.2809 | 0.2433 | 0.2283 | 0.2533 | 2.0826 |
+| ao_ideal_discrete_2 | 0.3316 | 0.2893 | 0.2551 | 0.2491 | 0.3123 | 2.9904 |
+| ao_practical_discrete_3 | 0.3265 | 0.2826 | 0.2457 | 0.2324 | 0.2650 | 2.3095 |
+| ao_ideal_discrete_3 | 0.3321 | 0.2900 | 0.2561 | 0.2509 | 0.3172 | 3.0392 |
 
 ## Codebase Analysis & Architecture
 
@@ -137,7 +137,6 @@ The repository is structured as follows to ensure modularity and scalability:
 │   ├── pso.py                    # Particle Swarm Optimization
 │   ├── cmaes.py                  # CMA-ES
 │   └── polishing.py              # Local solution refinement
-├── report.tex                    # Source for the PSO report
 ├── assets/                       # Published README/report figures
 ├── PSO_Report.pdf                # Compiled PSO report
 └── PhaseShift_Model.pdf          # Reference paper
@@ -180,15 +179,6 @@ python main.py --fig 7  # Fig. 7: Discrete phase shifts
 ### Outputs
 
 All simulation results are automatically serialized as `.npz` files and plotted as `.png` files inside the `results/` directory.
-
-### Rebuilding the PSO Report
-
-Compile the included report source with a local Tectonic installation:
-
-```bash
-tectonic report.tex
-```
-
 
 ---
 *Created for the advancement of Intelligent Reflecting Surface research.*
