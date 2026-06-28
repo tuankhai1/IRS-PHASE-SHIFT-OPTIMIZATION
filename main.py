@@ -5,7 +5,7 @@ Runs all simulation scenarios and generates figures.
 
 Usage:
     python main.py                 # Full simulation (1000 realizations)
-    python main.py --quick         # Quick test (20 realizations)
+    python main.py --realizations 20
     python main.py --fig 5         # Run only Fig. 5
     python main.py --fig 6         # Run only Fig. 6
     python main.py --fig 7         # Run only Fig. 7
@@ -19,28 +19,18 @@ matplotlib.use('Agg')
 
 from simulation import run_simulation_fig5, run_simulation_fig6, run_simulation_fig7
 from plot_results import plot_fig5, plot_fig6, plot_fig7
-from config import NUM_REALIZATIONS
+from config import NUM_REALIZATIONS, SEED
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description='IRS Phase Shift Optimization: PSO & CMA-ES'
+        description='IRS practical phase-shift simulation'
     )
-    parser.add_argument('--quick', action='store_true',
-                        help='Quick run with fewer realizations (20)')
-    parser.add_argument('--realizations', type=int, default=None,
+    parser.add_argument('--realizations', type=int, default=NUM_REALIZATIONS,
                         help='Number of channel realizations')
     parser.add_argument('--fig', type=int, choices=[5, 6, 7], default=None,
                         help='Run only a specific figure (5, 6, or 7)')
     args = parser.parse_args()
-
-    # Determine number of realizations
-    if args.realizations is not None:
-        num_real = args.realizations
-    elif args.quick:
-        num_real = 20
-    else:
-        num_real = NUM_REALIZATIONS
 
     # Create output directory
     out_dir = os.path.join(os.path.dirname(__file__), 'results')
@@ -48,8 +38,9 @@ def main():
 
     print(f"\n{'#'*60}")
     print(f"  IRS Phase Shift Optimization Project")
-    print(f"  Algorithms: AO (baseline) | PSO | CMA-ES")
-    print(f"  Channel realizations: {num_real}")
+    print(f"  Mode: paper figures with PSO/CMA-ES comparisons")
+    print(f"  Channel realizations: {args.realizations}")
+    print(f"  Base seed: {SEED}")
     print(f"  Output directory: {out_dir}")
     print(f"{'#'*60}")
 
@@ -58,32 +49,41 @@ def main():
     # ---- Fig. 5 ----  
     if 5 in figs_to_run:
         results5 = run_simulation_fig5(
-            num_realizations=num_real,
+            num_realizations=args.realizations,
             save_path=os.path.join(out_dir, 'results_fig5.npz')
         )
         plot_fig5(results5,
                   save_path=os.path.join(out_dir, 'fig5_rate_vs_distance.png'))
         print_summary(results5, 'Fig. 5', 'd_values')
+        print_runtime_summary(results5, 'Fig. 5')
+        save_runtime_table(results5, 'd_values',
+                           save_path=os.path.join(out_dir, 'runtime_table_fig5.md'))
 
     # ---- Fig. 6 ----
     if 6 in figs_to_run:
         results6 = run_simulation_fig6(
-            num_realizations=num_real,
+            num_realizations=args.realizations,
             save_path=os.path.join(out_dir, 'results_fig6.npz')
         )
         plot_fig6(results6,
                   save_path=os.path.join(out_dir, 'fig6_rate_vs_N.png'))
         print_summary(results6, 'Fig. 6', 'N_values')
+        print_runtime_summary(results6, 'Fig. 6')
+        save_runtime_table(results6, 'N_values',
+                           save_path=os.path.join(out_dir, 'runtime_table_fig6.md'))
 
     # ---- Fig. 7 ----
     if 7 in figs_to_run:
         results7 = run_simulation_fig7(
-            num_realizations=num_real,
+            num_realizations=args.realizations,
             save_path=os.path.join(out_dir, 'results_fig7.npz')
         )
         plot_fig7(results7,
                   save_path=os.path.join(out_dir, 'fig7_discrete_phases.png'))
         print_summary(results7, 'Fig. 7', 'd_values')
+        print_runtime_summary(results7, 'Fig. 7')
+        save_runtime_table(results7, 'd_values',
+                           save_path=os.path.join(out_dir, 'runtime_table_fig7.md'))
 
     print(f"\n{'#'*60}")
     print(f"  All simulations complete!")
@@ -95,7 +95,13 @@ def print_summary(results, fig_name, x_key):
     """Print a summary table of results."""
     print(f"\n  --- {fig_name} Summary ---")
     x_vals = results[x_key]
-    scheme_keys = [k for k in results if k != x_key and isinstance(results[k], np.ndarray)]
+    metadata_keys = {'seed'}
+    scheme_keys = [
+        k for k in results
+        if k != x_key and k not in metadata_keys and not k.startswith('runtime_')
+        and isinstance(results[k], np.ndarray)
+        and results[k].shape == x_vals.shape
+    ]
 
     # Header
     header = f"  {'Scheme':<35}"
@@ -111,6 +117,82 @@ def print_summary(results, fig_name, x_key):
             row += f" {val:>7.2f}"
         print(row)
     print()
+
+
+def print_runtime_summary(results, fig_name):
+    """Print per-scheme runtime measured over the same realization seeds."""
+    required = {
+        'runtime_scheme_names',
+        'runtime_overall_mean_seconds',
+        'runtime_overall_total_seconds',
+        'runtime_num_samples',
+        'runtime_wall_seconds',
+    }
+    if not required.issubset(results):
+        return
+
+    schemes = results['runtime_scheme_names']
+    mean_seconds = results['runtime_overall_mean_seconds']
+    total_seconds = results['runtime_overall_total_seconds']
+    num_samples = int(results['runtime_num_samples'])
+    wall_seconds = float(results['runtime_wall_seconds'])
+
+    print(f"  --- {fig_name} Runtime Summary ---")
+    print(f"  Samples per scheme: {num_samples}")
+    print(f"  Parallel wall time: {wall_seconds:.2f}s")
+    print(f"  {'Scheme':<35} {'Mean/seed (s)':>14} {'Total CPU (s)':>14}")
+    print("  " + "-" * 65)
+    for scheme, mean_s, total_s in zip(schemes, mean_seconds, total_seconds):
+        print(f"  {scheme:<35} {mean_s:>14.4f} {total_s:>14.2f}")
+    print()
+
+
+def save_runtime_table(results, x_key, save_path):
+    """Save a Markdown runtime table with one row per scheme."""
+    required = {
+        'runtime_scheme_names',
+        'runtime_mean_seconds',
+        'runtime_overall_mean_seconds',
+        'runtime_overall_total_seconds',
+        'runtime_num_samples',
+        'runtime_wall_seconds',
+    }
+    if not required.issubset(results):
+        return
+
+    x_vals = results[x_key]
+    schemes = results['runtime_scheme_names']
+    mean_by_x = results['runtime_mean_seconds']
+    overall_mean = results['runtime_overall_mean_seconds']
+    overall_total = results['runtime_overall_total_seconds']
+    num_samples = int(results['runtime_num_samples'])
+    num_realizations = num_samples // len(x_vals)
+    wall_seconds = float(results['runtime_wall_seconds'])
+
+    headers = ['Scheme']
+    headers.extend(str(int(x)) if float(x).is_integer() else f'{x:g}' for x in x_vals)
+    headers.extend(['Overall mean/seed (s)', 'Total CPU (s)'])
+
+    lines = [
+        f'Runtime table for `{x_key}`.',
+        '',
+        f'- Channel realizations per x-value: `{num_realizations}`',
+        f'- Parallel wall time: `{wall_seconds:.2f} s`',
+        '',
+        '| ' + ' | '.join(headers) + ' |',
+        '| ' + ' | '.join([':---'] + ['---:'] * (len(headers) - 1)) + ' |',
+    ]
+
+    for i, scheme in enumerate(schemes):
+        row = [str(scheme)]
+        row.extend(f'{value:.6f}' for value in mean_by_x[i])
+        row.append(f'{overall_mean[i]:.6f}')
+        row.append(f'{overall_total[i]:.2f}')
+        lines.append('| ' + ' | '.join(row) + ' |')
+
+    with open(save_path, 'w', encoding='utf-8', newline='\n') as f:
+        f.write('\n'.join(lines) + '\n')
+    print(f"  Runtime table saved to {save_path}")
 
 
 if __name__ == '__main__':

@@ -34,15 +34,9 @@ REF_LOSS_DB = 40
 C0 = 10 ** (-REF_LOSS_DB / 10)   # Reference path loss at 1m = 1e-4
 
 # Path loss exponents
-ALPHA_AI = 2.2   # AP  -> IRS  (strong LoS assumed)
+ALPHA_AI = 2.2   # AP  -> IRS
 ALPHA_IU = 2.8   # IRS -> User
-ALPHA_AU = 3.8   # AP  -> User (NLoS, more severe)
-
-# Rician K-factor for AP-IRS link (dB).  The low path-loss exponent
-# α_AI = 2.2 implies a dominant Line-of-Sight component.  A Rician
-# channel model with K ≈ 10 dB is standard for such links.
-K_RICIAN_AI_DB = 10
-K_RICIAN_AI = 10 ** (K_RICIAN_AI_DB / 10)   # ~10.0 linear
+ALPHA_AU = 3.8   # AP  -> User
 
 # ============================================================
 # Practical Phase Shift Model:  β(θ) = (1-β_min)*((sin(θ-φ)+1)/2)^k + β_min

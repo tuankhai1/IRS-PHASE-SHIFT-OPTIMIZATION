@@ -5,7 +5,11 @@ Each particle represents a candidate phase shift vector θ ∈ [-π, π]^N.
 The swarm collectively searches for the phase shifts that maximize
 the channel gain ||v^H Φ + h_d^H||².
 
-Key design decisions in this implementation:
+Maximizing this gain also maximizes the achievable rate
+R = log2(1 + P_T * F(v) / sigma^2), because R is strictly increasing
+with F(v) for positive transmit power and noise variance.
+
+Key design decisions in the improved implementation:
     - Independent initialization: Multi-strategy seeding with
       phase-alignment heuristic, anti-phase particles, and random
       particles — no dependency on AO or any other optimizer.
@@ -26,13 +30,67 @@ Reference:
 """
 
 import numpy as np
-from phase_shift_model import quantize_angles, wrap_angle
-from objective import compute_channel_gain
-from algorithms.polishing import gradient_polish
+from phase_shift_model import quantize_angles, reflection_vector, wrap_angle
+from objective import compute_channel_gain, compute_rate
 from config import (
     PSO_POP_SIZE, PSO_MAX_ITER,
     PSO_C1, PSO_C2, PSO_V_MAX,
 )
+
+
+def _validate_objective_inputs(Phi, h_d, N):
+    """Validate the dimensions used by F(v) = ||v^H Phi + h_d^H||^2."""
+    if Phi.ndim != 2:
+        raise ValueError(f"Phi must be 2D with shape (N, M); got {Phi.shape}.")
+    if h_d.ndim != 1:
+        raise ValueError(f"h_d must be 1D with shape (M,); got {h_d.shape}.")
+    if Phi.shape != (N, h_d.shape[0]):
+        raise ValueError(
+            "Objective dimensions are inconsistent: expected "
+            f"Phi.shape == ({N}, {h_d.shape[0]}), got {Phi.shape}."
+        )
+
+
+def _objective_diagnostics(theta, Phi, h_d, use_practical):
+    """
+    Break F(v) into terms for debugging and explanation.
+
+    This helper intentionally mirrors compute_channel_gain:
+        reflected = v^H Phi
+        direct    = h_d^H
+        effective = reflected + direct
+        gain      = ||effective||^2
+    """
+    v = reflection_vector(theta, use_practical)
+    reflected = v.conj() @ Phi
+    direct = h_d.conj()
+    effective = reflected + direct
+    gain = float(np.vdot(effective, effective).real)
+
+    return {
+        "reflection_amplitude_min": float(np.min(np.abs(v))),
+        "reflection_amplitude_max": float(np.max(np.abs(v))),
+        "reflected_norm": float(np.linalg.norm(reflected)),
+        "direct_norm": float(np.linalg.norm(direct)),
+        "effective_norm": float(np.linalg.norm(effective)),
+        "gain": gain,
+        "rate": float(compute_rate(gain)),
+    }
+
+
+def _print_objective_diagnostics(label, theta, Phi, h_d, use_practical):
+    """Print a compact explanation of the objective for one candidate."""
+    info = _objective_diagnostics(theta, Phi, h_d, use_practical)
+    print(
+        f"[PSO] {label}: "
+        f"|v_n|=[{info['reflection_amplitude_min']:.4f}, "
+        f"{info['reflection_amplitude_max']:.4f}], "
+        f"||v^H Phi||={info['reflected_norm']:.6e}, "
+        f"||h_d^H||={info['direct_norm']:.6e}, "
+        f"||v^H Phi + h_d^H||={info['effective_norm']:.6e}, "
+        f"F(v)={info['gain']:.6e}, "
+        f"rate={info['rate']:.6f} bits/s/Hz"
+    )
 
 
 def _phase_alignment_init(Phi, h_d):
@@ -55,12 +113,77 @@ def _phase_alignment_init(Phi, h_d):
     return np.angle(projection)
 
 
+def pso_default_optimize(Phi, h_d, N, use_practical=True,
+                         discrete_set=None,
+                         pop_size=PSO_POP_SIZE,
+                         max_iter=PSO_MAX_ITER,
+                         inertia=0.729,
+                         c1=1.49445,
+                         c2=1.49445,
+                         v_max=PSO_V_MAX,
+                         rng=None):
+    """
+    Standard global-best PSO baseline.
+
+    This version uses uniform-random initialization, global-best topology,
+    and the usual inertia PSO update. It intentionally leaves out the
+    project-specific improvements in ``pso_optimize`` so it can serve as
+    a clearer baseline against AO.
+    """
+    _validate_objective_inputs(Phi, h_d, N)
+    if pop_size < 2:
+        raise ValueError("pop_size must be at least 2.")
+    if rng is None:
+        rng = np.random.default_rng()
+
+    positions = rng.uniform(-np.pi, np.pi, size=(pop_size, N))
+    velocities = rng.uniform(-v_max * 0.1, v_max * 0.1, size=(pop_size, N))
+
+    eval_pos = quantize_angles(positions, discrete_set) if discrete_set is not None else positions
+    fitness = compute_channel_gain(eval_pos, Phi, h_d, use_practical)
+
+    pbest_pos = positions.copy()
+    pbest_val = fitness.copy()
+
+    gbest_idx = int(np.argmax(fitness))
+    gbest_pos = positions[gbest_idx].copy()
+    gbest_val = fitness[gbest_idx]
+
+    for _ in range(max_iter):
+        r1 = rng.random((pop_size, N))
+        r2 = rng.random((pop_size, N))
+
+        cognitive = c1 * r1 * wrap_angle(pbest_pos - positions)
+        social = c2 * r2 * wrap_angle(gbest_pos[np.newaxis, :] - positions)
+        velocities = inertia * velocities + cognitive + social
+        velocities = np.clip(velocities, -v_max, v_max)
+
+        positions = wrap_angle(positions + velocities)
+
+        eval_pos = quantize_angles(positions, discrete_set) if discrete_set is not None else positions
+        fitness = compute_channel_gain(eval_pos, Phi, h_d, use_practical)
+
+        improved = fitness > pbest_val
+        pbest_pos[improved] = positions[improved]
+        pbest_val[improved] = fitness[improved]
+
+        best_particle = int(np.argmax(pbest_val))
+        if pbest_val[best_particle] > gbest_val:
+            gbest_pos = pbest_pos[best_particle].copy()
+            gbest_val = pbest_val[best_particle]
+
+    if discrete_set is not None:
+        gbest_pos = quantize_angles(gbest_pos[np.newaxis, :], discrete_set)[0]
+
+    return gbest_pos, gbest_val
+
+
 def pso_optimize(Phi, h_d, N, use_practical=True,
                  discrete_set=None,
                  pop_size=PSO_POP_SIZE,
                  max_iter=PSO_MAX_ITER,
                  c1=PSO_C1, c2=PSO_C2, v_max=PSO_V_MAX,
-                 rng=None):
+                 rng=None, verbose=False, log_interval=10):
     """
     Particle Swarm Optimization for IRS phase shift optimization.
 
@@ -95,6 +218,10 @@ def pso_optimize(Phi, h_d, N, use_practical=True,
     v_max : float
         Maximum velocity magnitude per dimension.
     rng : np.random.Generator, optional
+    verbose : bool
+        If True, print objective decomposition and optimization progress.
+    log_interval : int
+        Iteration interval for progress messages when ``verbose=True``.
 
     Returns
     -------
@@ -103,6 +230,12 @@ def pso_optimize(Phi, h_d, N, use_practical=True,
     obj_best : float
         Best channel gain achieved.
     """
+    _validate_objective_inputs(Phi, h_d, N)
+    if pop_size < 3:
+        raise ValueError("pop_size must be at least 3 for the ring topology.")
+    if log_interval < 1:
+        raise ValueError("log_interval must be at least 1.")
+
     if rng is None:
         rng = np.random.default_rng()
 
@@ -153,6 +286,20 @@ def pso_optimize(Phi, h_d, N, use_practical=True,
     gbest_idx = np.argmax(fitness)
     gbest_pos = positions[gbest_idx].copy()
     gbest_val = fitness[gbest_idx]
+
+    if verbose:
+        model_name = "practical amplitude-phase" if use_practical else "ideal unit-amplitude"
+        print(
+            f"[PSO] Maximizing F(v) = ||v^H Phi + h_d^H||^2 "
+            f"with the {model_name} model."
+        )
+        print(
+            f"[PSO] swarm={pop_size}, dimensions={N}, iterations={max_iter}, "
+            f"constriction chi={chi:.6f}"
+        )
+        _print_objective_diagnostics(
+            "best initialization", eval_pos[gbest_idx], Phi, h_d, use_practical
+        )
 
     # ================================================================
     # Ring Topology: each particle's neighborhood = itself + 2 neighbors
@@ -236,21 +383,29 @@ def pso_optimize(Phi, h_d, N, use_practical=True,
                 pbest_pos[idx] = positions[idx]
                 pbest_val[idx] = fitness_reinit[j]
 
+            if verbose:
+                print(
+                    f"[PSO] iteration {t + 1}: stagnation detected; "
+                    f"reinitialized {n_reinit} particles."
+                )
             stagnation_counter = 0
 
-    # ---- Final Gradient Polish ----
-    # Refine PSO's best solution with gradient ascent (25 steps).
-    # Gradient updates ALL elements simultaneously, which can push
-    # past the coordinate-wise optima that PSO dynamics may settle near.
-    if discrete_set is None:
-        polished_pos, polished_val = gradient_polish(
-            gbest_pos, Phi, h_d, use_practical, n_steps=25, lr_init=0.06)
-        if polished_val > gbest_val:
-            gbest_pos = polished_pos
-            gbest_val = polished_val
+        if verbose and (
+            t == 0 or (t + 1) % log_interval == 0 or t + 1 == max_iter
+        ):
+            print(
+                f"[PSO] iteration {t + 1:>4}/{max_iter}: "
+                f"best F(v)={gbest_val:.6e}, "
+                f"rate={float(compute_rate(gbest_val)):.6f} bits/s/Hz"
+            )
 
     # Return the best solution found (quantized if discrete)
     if discrete_set is not None:
         gbest_pos = quantize_angles(gbest_pos[np.newaxis, :], discrete_set)[0]
+
+    if verbose:
+        _print_objective_diagnostics(
+            "final solution", gbest_pos, Phi, h_d, use_practical
+        )
 
     return gbest_pos, gbest_val

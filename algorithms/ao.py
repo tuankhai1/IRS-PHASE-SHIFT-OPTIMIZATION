@@ -12,21 +12,15 @@ Reference: Algorithm 1, Section IV in the paper.
 """
 
 import numpy as np
-from phase_shift_model import beta, reflection_vector
+from phase_shift_model import beta, quantize_angles, reflection_vector
 from objective import compute_channel_gain
 from config import AO_MAX_ITER, AO_TOL, AO_1D_SEARCH_POINTS
 
 
 # ============================================================
-# Precomputed lookup tables for 1D search
+# Precomputed lookup table for 1D trust-region search
 # ============================================================
-# Computed once at import time. Eliminates millions of redundant
-# np.sin / np.power calls during AO iterations.
-_CANDIDATES = np.linspace(-np.pi, np.pi, AO_1D_SEARCH_POINTS, endpoint=False)
-_BETA_CACHE = beta(_CANDIDATES)
-_BETA_SQ_CACHE = _BETA_CACHE ** 2
-_COS_CACHE = np.cos(_CANDIDATES)
-_SIN_CACHE = np.sin(_CANDIDATES)
+_SEARCH_FRACTIONS = np.linspace(0.0, 1.0, AO_1D_SEARCH_POINTS, endpoint=True)
 
 
 def _compute_psi_and_hd_hat(Phi, h_d):
@@ -78,10 +72,7 @@ def _compute_phi_n(n, v, Psi, hd_hat):
 
 def _solve_p2_proposition1(psi_nn, phi_n):
     """
-    Solve sub-problem (P2) using Proposition 1 with precomputed caches.
-
-    Uses module-level precomputed β, β², cos, sin lookup tables to avoid
-    redundant trigonometric computations.
+    Solve sub-problem (P2) using Proposition 1.
 
     Reference: Proposition 1, Section IV-C in the paper.
 
@@ -100,15 +91,36 @@ def _solve_p2_proposition1(psi_nn, phi_n):
     phi_n_abs = np.abs(phi_n)
     phi_n_arg = np.angle(phi_n)
 
-    # Use precomputed caches — cos(arg - θ) = cos(arg)cos(θ) + sin(arg)sin(θ)
-    cos_diff = np.cos(phi_n_arg) * _COS_CACHE + np.sin(phi_n_arg) * _SIN_CACHE
-    f_vals = _BETA_SQ_CACHE * psi_nn + _BETA_CACHE * phi_n_abs * cos_diff
-    return _CANDIDATES[np.argmax(f_vals)]
+    theta_c = np.pi if phi_n_arg >= 0 else -np.pi
+    theta_a = phi_n_arg
+    theta_b = 0.5 * (theta_a + theta_c)
+
+    def p2_value(theta):
+        b = beta(theta)
+        return b ** 2 * psi_nn + b * phi_n_abs * np.cos(phi_n_arg - theta)
+
+    f1 = p2_value(theta_a)
+    f2 = p2_value(theta_b)
+    f3 = p2_value(theta_c)
+    denom = 4 * (f1 - 2 * f2 + f3)
+
+    if abs(denom) < 1e-20:
+        candidates = np.array([theta_a, theta_b, theta_c])
+        values = np.array([f1, f2, f3])
+        return candidates[np.argmax(values)]
+
+    theta_hat = (
+        theta_c * (3 * f1 - 4 * f2 + f3)
+        + theta_a * (f1 - 4 * f2 + 3 * f3)
+    ) / denom
+
+    lo, hi = (theta_a, theta_c) if theta_a <= theta_c else (theta_c, theta_a)
+    return float(np.clip(theta_hat, lo, hi))
 
 
 def _solve_p2_1d_search(psi_nn, phi_n, discrete_set=None):
     """
-    Solve sub-problem (P2) via exhaustive 1D search with precomputed caches.
+    Solve sub-problem (P2) via exhaustive 1D search.
 
     Parameters
     ----------
@@ -135,10 +147,11 @@ def _solve_p2_1d_search(psi_nn, phi_n, discrete_set=None):
         f_vals = b ** 2 * psi_nn + b * phi_n_abs * cos_diff
         return discrete_set[np.argmax(f_vals)]
     else:
-        # Continuous: use precomputed caches
-        cos_diff = np.cos(phi_n_arg) * _COS_CACHE + np.sin(phi_n_arg) * _SIN_CACHE
-        f_vals = _BETA_SQ_CACHE * psi_nn + _BETA_CACHE * phi_n_abs * cos_diff
-        return _CANDIDATES[np.argmax(f_vals)]
+        theta_c = np.pi if phi_n_arg >= 0 else -np.pi
+        candidates = phi_n_arg + (theta_c - phi_n_arg) * _SEARCH_FRACTIONS
+        b = beta(candidates)
+        f_vals = b ** 2 * psi_nn + b * phi_n_abs * np.cos(phi_n_arg - candidates)
+        return candidates[np.argmax(f_vals)]
 
 
 def ao_optimize(Phi, h_d, N, method='prop1', use_practical=True,
@@ -190,15 +203,15 @@ def ao_optimize(Phi, h_d, N, method='prop1', use_practical=True,
     # Initialize
     if theta_init is not None:
         theta = theta_init.copy()
+    elif discrete_set is not None:
+        theta = rng.choice(discrete_set, size=N)
+    elif use_practical:
+        theta = rng.choice(np.array([-np.pi, np.pi]), size=N)
     else:
-        # Uniform random initialization over [-π, π]
         theta = rng.uniform(-np.pi, np.pi, size=N)
 
     if discrete_set is not None:
-        # Snap to nearest discrete value
-        theta = discrete_set[np.argmin(
-            np.abs(theta[:, np.newaxis] - discrete_set[np.newaxis, :]), axis=1
-        )]
+        theta = quantize_angles(theta, discrete_set)
 
     v = reflection_vector(theta, use_practical)
     obj_prev = compute_channel_gain(theta, Phi, h_d, use_practical)

@@ -4,13 +4,11 @@ Plotting utilities for generating publication-quality figures.
 Reproduces the paper's Figs. 5, 6, and 7 with additional PSO and CMA-ES curves.
 """
 
+import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
+import os
 
-
-# ============================================================
-# Color scheme — uses highly distinct, paper-style colors
-# ============================================================
 
 # Main figure styles (Figs. 5, 6)
 SCHEME_STYLES = {
@@ -24,15 +22,17 @@ SCHEME_STYLES = {
                                     'color': '#FB8C00', 'marker': 'D', 'ls': ':', 'lw': 2.5},
     'lower_bound':                 {'label': '5) Lower bound (no IRS)',
                                     'color': '#212121', 'marker': '*', 'ls': '--', 'lw': 2.0},
-    'pso_practical':               {'label': '6) PSO, practical',
-                                    'color': '#8E24AA', 'marker': 'v', 'ls': '-', 'lw': 2.0},
-    'cmaes_practical':             {'label': '7) CMA-ES, practical',
-                                    'color': '#00ACC1', 'marker': 'P', 'ls': '-', 'lw': 2.0},
+    'pso_default':                 {'label': '6) PSO default, practical',
+                                    'color': '#8E24AA', 'marker': 'v', 'ls': '--', 'lw': 1.8},
+    'cmaes_default':               {'label': '7) CMA-ES default, practical',
+                                    'color': '#00ACC1', 'marker': 'P', 'ls': '--', 'lw': 1.8},
+    'pso_practical':               {'label': '8) PSO improved, practical',
+                                    'color': '#6A1B9A', 'marker': 'X', 'ls': '-', 'lw': 2.0},
+    'cmaes_practical':             {'label': '9) CMA-ES improved, practical',
+                                    'color': '#00838F', 'marker': 'h', 'ls': '-', 'lw': 2.0},
 }
 
 # Fig 7: vibrant Material Design 500 colors
-# Practical (solid lines): warm saturated tones
-# Ideal (dashed lines): cool saturated tones with distinct markers
 DISCRETE_STYLES = {
     'ao_practical_discrete_1': {'label': 'Practical, b=1',
                                 'color': '#F44336', 'marker': 'o', 'ls': '-', 'lw': 2.5, 'ms': 9},
@@ -50,48 +50,33 @@ DISCRETE_STYLES = {
 
 
 def _setup_axes(ax, xlabel, ylabel, title=None):
-    """Apply consistent styling to axes."""
     ax.set_xlabel(xlabel, fontsize=13)
     ax.set_ylabel(ylabel, fontsize=13)
     if title:
         ax.set_title(title, fontsize=14, fontweight='bold')
-        
-    # Ensure minor ticks are completely disabled
     ax.minorticks_off()
         
-    # Y-axis intervals of 0.5
     ax.yaxis.set_major_locator(ticker.MultipleLocator(0.5))
     
-    # Align the first and last grid lines exactly with the bounding box spines
     ax.margins(x=0)
     ax.set_ylim(bottom=0)
     
-    # Neater grids: solid light major grid only, explicitly turn off minor grid
     ax.grid(False, which='minor')
     ax.grid(True, which='major', linestyle='-', linewidth=0.6, alpha=0.6, color='#A0A0A0')
     
-    # MATLAB style: ticks point inward and appear on all 4 sides, full bounding box
     ax.tick_params(direction='in', top=True, right=True, labelsize=11, pad=6)
 
 
 def plot_fig5(results, save_path=None):
-    """
-    Plot Fig. 5: Achievable rate vs. AP-user horizontal distance.
-
-    Parameters
-    ----------
-    results : dict
-        Output from run_simulation_fig5().
-    save_path : str, optional
-        If provided, saves the figure.
-    """
     fig, ax = plt.subplots(1, 1, figsize=(10, 7))
     d_values = results['d_values']
 
     plot_order = [
         'upper_bound', 'ao_practical_prop1', 'ao_practical_1d',
         'ideal_design_practical_eval',
-        'pso_practical', 'cmaes_practical', 'lower_bound'
+        'pso_default', 'cmaes_default',
+        'pso_practical', 'cmaes_practical',
+        'lower_bound'
     ]
 
     for scheme in plot_order:
@@ -107,7 +92,7 @@ def plot_fig5(results, save_path=None):
                 xlabel='AP-user horizontal distance: $d$ (m)',
                 ylabel='Achievable rate (bits/s/Hz)',
                 title=f'Fig. 5: Achievable Rate vs. Distance (N={results.get("N", 40)})')
-    ax.legend(fontsize=10, loc='upper left', framealpha=0.9)
+    ax.legend(fontsize=9, loc='upper left', framealpha=0.9, ncol=2)
     fig.tight_layout()
 
     if save_path:
@@ -118,22 +103,15 @@ def plot_fig5(results, save_path=None):
 
 
 def plot_fig6(results, save_path=None):
-    """
-    Plot Fig. 6: Achievable rate vs. number of reflecting elements.
-
-    Parameters
-    ----------
-    results : dict
-        Output from run_simulation_fig6().
-    save_path : str, optional
-    """
     fig, ax = plt.subplots(1, 1, figsize=(10, 7))
     N_values = results['N_values']
 
     plot_order = [
         'upper_bound', 'ao_practical_prop1', 'ao_practical_1d',
         'ideal_design_practical_eval',
-        'pso_practical', 'cmaes_practical', 'lower_bound'
+        'pso_default', 'cmaes_default',
+        'pso_practical', 'cmaes_practical',
+        'lower_bound'
     ]
 
     for scheme in plot_order:
@@ -149,7 +127,7 @@ def plot_fig6(results, save_path=None):
                 xlabel='Number of reflecting elements ($N$)',
                 ylabel='Achievable rate (bits/s/Hz)',
                 title='Fig. 6: Achievable Rate vs. $N$ (d=498m)')
-    ax.legend(fontsize=10, loc='upper left', framealpha=0.9)
+    ax.legend(fontsize=9, loc='upper left', framealpha=0.9, ncol=2)
     fig.tight_layout()
 
     if save_path:
@@ -160,15 +138,6 @@ def plot_fig6(results, save_path=None):
 
 
 def plot_fig7(results, save_path=None):
-    """
-    Plot Fig. 7: Achievable rate vs. distance with discrete phase shifts.
-
-    Parameters
-    ----------
-    results : dict
-        Output from run_simulation_fig7().
-    save_path : str, optional
-    """
     fig, ax = plt.subplots(1, 1, figsize=(10, 7))
     d_values = results['d_values']
 
@@ -181,7 +150,6 @@ def plot_fig7(results, save_path=None):
                     marker=style['marker'], linestyle=style['ls'],
                     linewidth=style['lw'], markersize=8, clip_on=False)
 
-    # Plot discrete schemes — practical first (solid), then ideal (dashed)
     plot_order = [
         'ao_practical_discrete_1', 'ao_practical_discrete_2', 'ao_practical_discrete_3',
         'ao_ideal_discrete_1', 'ao_ideal_discrete_2', 'ao_ideal_discrete_3',
