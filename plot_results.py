@@ -22,13 +22,11 @@ SCHEME_STYLES = {
                                     'color': '#FB8C00', 'marker': 'D', 'ls': ':', 'lw': 2.5},
     'lower_bound':                 {'label': '5) Lower bound (no IRS)',
                                     'color': '#212121', 'marker': '*', 'ls': '--', 'lw': 2.0},
-    'pso_default':                 {'label': '6) PSO default, practical',
+    'pso':                         {'label': '6) PSO, practical',
                                     'color': '#8E24AA', 'marker': 'v', 'ls': '--', 'lw': 1.8},
     'cmaes_default':               {'label': '7) CMA-ES default, practical',
                                     'color': '#00ACC1', 'marker': 'P', 'ls': '--', 'lw': 1.8},
-    'pso_practical':               {'label': '8) PSO improved, practical',
-                                    'color': '#6A1B9A', 'marker': 'X', 'ls': '-', 'lw': 2.0},
-    'cmaes_practical':             {'label': '9) CMA-ES improved, practical',
+    'cmaes_practical':             {'label': '8) CMA-ES improved, practical',
                                     'color': '#00838F', 'marker': 'h', 'ls': '-', 'lw': 2.0},
 }
 
@@ -74,8 +72,7 @@ def plot_fig5(results, save_path=None):
     plot_order = [
         'upper_bound', 'ao_practical_prop1', 'ao_practical_1d',
         'ideal_design_practical_eval',
-        'pso_default', 'cmaes_default',
-        'pso_practical', 'cmaes_practical',
+        'pso', 'cmaes_default', 'cmaes_practical',
         'lower_bound'
     ]
 
@@ -109,8 +106,7 @@ def plot_fig6(results, save_path=None):
     plot_order = [
         'upper_bound', 'ao_practical_prop1', 'ao_practical_1d',
         'ideal_design_practical_eval',
-        'pso_default', 'cmaes_default',
-        'pso_practical', 'cmaes_practical',
+        'pso', 'cmaes_default', 'cmaes_practical',
         'lower_bound'
     ]
 

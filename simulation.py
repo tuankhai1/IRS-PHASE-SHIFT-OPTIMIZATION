@@ -22,7 +22,7 @@ from config import N_DEFAULT, NUM_REALIZATIONS, SEED
 from channel_model import generate_channels
 from objective import compute_channel_gain, compute_rate, compute_lower_bound_rate
 from algorithms.ao import ao_optimize
-from algorithms.pso import pso_default_optimize, pso_optimize
+from algorithms.pso import pso_optimize
 from algorithms.cmaes import cmaes_default_optimize, cmaes_optimize
 
 # Number of parallel workers.
@@ -40,9 +40,8 @@ PAPER_CONTINUOUS_SCHEMES = [
 ]
 
 METAHEURISTIC_COMPARISON_SCHEMES = [
-    'pso_default',
+    'pso',
     'cmaes_default',
-    'pso_practical',
     'cmaes_practical',
 ]
 
@@ -121,12 +120,7 @@ def _run_single_realization(N, d_horizontal, schemes, seed):
             # No IRS
             results[scheme] = compute_lower_bound_rate(h_d)
 
-        elif scheme == 'pso_default':
-            _, gain = pso_default_optimize(Phi, h_d, N, use_practical=True,
-                                           rng=s_rng)
-            results[scheme] = compute_rate(gain)
-
-        elif scheme == 'pso_practical':
+        elif scheme == 'pso':
             _, gain = pso_optimize(Phi, h_d, N, use_practical=True,
                                    rng=s_rng)
             results[scheme] = compute_rate(gain)
@@ -301,10 +295,9 @@ def run_simulation_fig5(num_realizations=NUM_REALIZATIONS, save_path=None,
         3. AO + practical model (1D search)
         4. Ideal design, practical evaluation
         5. Lower bound (no IRS)
-        6. Default PSO + practical model
+        6. PSO + practical model
         7. Default CMA-ES + practical model
-        8. Improved PSO + practical model
-        9. Improved CMA-ES + practical model
+        8. Improved CMA-ES + practical model
 
     Returns
     -------

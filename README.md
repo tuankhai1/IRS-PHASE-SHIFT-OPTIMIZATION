@@ -44,9 +44,9 @@ default simulation pipeline follows the reference paper's AO-based schemes:
    Baselines used to reproduce the paper's continuous and discrete phase-shift
    figures.
 
-The continuous-phase figures also include default and improved PSO/CMA-ES
-variants for comparison against AO under the same channel realizations and
-practical phase-shift objective.
+The continuous-phase figures also include PSO and CMA-ES variants for
+comparison against AO under the same channel realizations and practical
+phase-shift objective.
 
 ## Current Pipeline
 
@@ -63,9 +63,8 @@ as comparison optimizers. The paper-aligned schemes are:
 For Fig. 5 and Fig. 6, the following additional optimizers are run under the
 same channel realizations and practical phase-shift objective:
 
-- `pso_default`: standard global-best PSO baseline.
+- `pso`: standard global-best PSO.
 - `cmaes_default`: standard single-start CMA-ES baseline.
-- `pso_practical`: improved PSO variant.
 - `cmaes_practical`: improved CMA-ES variant.
 
 Fig. 7 remains the paper's discrete phase-shift comparison for `b = 1, 2, 3`.
@@ -105,9 +104,8 @@ Detailed result table, in bit/s/Hz:
 | ao_practical_1d | 0.26 | 0.28 | 0.30 | 0.33 | 0.35 | 0.42 | 0.55 | 0.79 | 1.25 | 2.33 | 3.47 |
 | ideal_design_practical_eval | 0.25 | 0.26 | 0.28 | 0.30 | 0.32 | 0.38 | 0.49 | 0.68 | 1.06 | 2.00 | 3.00 |
 | lower_bound | 0.17 | 0.17 | 0.17 | 0.16 | 0.16 | 0.16 | 0.16 | 0.16 | 0.16 | 0.15 | 0.15 |
-| pso_default | 0.26 | 0.28 | 0.30 | 0.32 | 0.35 | 0.42 | 0.55 | 0.78 | 1.25 | 2.32 | 3.45 |
+| pso | 0.26 | 0.28 | 0.30 | 0.32 | 0.35 | 0.42 | 0.55 | 0.78 | 1.25 | 2.32 | 3.45 |
 | cmaes_default | 0.24 | 0.25 | 0.27 | 0.29 | 0.31 | 0.35 | 0.45 | 0.62 | 0.95 | 1.76 | 2.72 |
-| pso_practical | 0.26 | 0.28 | 0.30 | 0.32 | 0.35 | 0.42 | 0.55 | 0.78 | 1.23 | 2.29 | 3.40 |
 | cmaes_practical | 0.26 | 0.28 | 0.30 | 0.32 | 0.35 | 0.42 | 0.55 | 0.78 | 1.24 | 2.31 | 3.43 |
 
 Runtime comparison: [results/runtime_table_fig5.md](results/runtime_table_fig5.md)
@@ -125,9 +123,8 @@ Detailed result table, in bit/s/Hz:
 | ao_practical_1d | 0.66 | 1.27 | 1.79 | 2.29 | 2.77 | 3.15 | 3.51 | 3.84 |
 | ideal_design_practical_eval | 0.56 | 1.06 | 1.49 | 1.93 | 2.40 | 2.74 | 3.07 | 3.39 |
 | lower_bound | 0.16 | 0.14 | 0.14 | 0.14 | 0.15 | 0.16 | 0.16 | 0.15 |
-| pso_default | 0.66 | 1.27 | 1.79 | 2.27 | 2.74 | 3.09 | 3.42 | 3.72 |
+| pso | 0.66 | 1.27 | 1.79 | 2.27 | 2.74 | 3.09 | 3.42 | 3.72 |
 | cmaes_default | 0.64 | 1.16 | 1.52 | 1.76 | 1.92 | 2.10 | 2.12 | 2.06 |
-| pso_practical | 0.66 | 1.27 | 1.77 | 2.24 | 2.68 | 3.02 | 3.34 | 3.64 |
 | cmaes_practical | 0.66 | 1.27 | 1.78 | 2.26 | 2.73 | 3.09 | 3.42 | 3.74 |
 
 Runtime comparison: [results/runtime_table_fig6.md](results/runtime_table_fig6.md)
