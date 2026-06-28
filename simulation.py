@@ -15,14 +15,15 @@ realizations across all available CPU cores.
 import numpy as np
 import time
 import os
+import hashlib
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
 from config import N_DEFAULT, NUM_REALIZATIONS, SEED
 from channel_model import generate_channels
 from objective import compute_channel_gain, compute_rate, compute_lower_bound_rate
 from algorithms.ao import ao_optimize
-from algorithms.pso import pso_optimize
-from algorithms.cmaes import cmaes_optimize
+from algorithms.pso import pso_default_optimize, pso_optimize
+from algorithms.cmaes import cmaes_default_optimize, cmaes_optimize
 
 # Number of parallel workers.
 # Cap at half the CPU count (max 12) to avoid memory exhaustion —
@@ -30,7 +31,38 @@ from algorithms.cmaes import cmaes_optimize
 _N_WORKERS = min(max((os.cpu_count() or 2) // 2, 2), 12)
 
 
-def _run_single_realization(N, d_horizontal, schemes, rng):
+PAPER_CONTINUOUS_SCHEMES = [
+    'upper_bound',
+    'ao_practical_prop1',
+    'ao_practical_1d',
+    'ideal_design_practical_eval',
+    'lower_bound',
+]
+
+METAHEURISTIC_COMPARISON_SCHEMES = [
+    'pso_default',
+    'cmaes_default',
+    'pso_practical',
+    'cmaes_practical',
+]
+
+CONTINUOUS_COMPARISON_SCHEMES = (
+    PAPER_CONTINUOUS_SCHEMES + METAHEURISTIC_COMPARISON_SCHEMES
+)
+
+
+def _stable_seed(base_seed, *labels):
+    """Derive a deterministic seed that does not depend on scheme order."""
+    text = '|'.join([str(int(base_seed)), *(str(label) for label in labels)])
+    digest = hashlib.blake2b(text.encode('utf-8'), digest_size=8).digest()
+    return int.from_bytes(digest, 'little')
+
+
+def _rng_for(base_seed, *labels):
+    return np.random.default_rng(_stable_seed(base_seed, *labels))
+
+
+def _run_single_realization(N, d_horizontal, schemes, seed):
     """
     Run all schemes for a single channel realization.
 
@@ -42,34 +74,31 @@ def _run_single_realization(N, d_horizontal, schemes, rng):
         AP-user horizontal distance.
     schemes : list of str
         Which schemes to evaluate.
-    rng : np.random.Generator
+    seed : int
+        Task seed for this channel realization.
     Returns
     -------
-    dict
-        Mapping scheme name -> achievable rate.
+    tuple of dict
+        Per-scheme achievable rates and per-scheme runtimes.
     """
-    # Generate channels using the base rng
-    h_d, Phi = generate_channels(N, d_horizontal, rng)
+    # Keep channel randomness separate from optimizer randomness.
+    h_d, Phi = generate_channels(N, d_horizontal, _rng_for(seed, 'channel'))
     results = {}
+    runtimes = {}
 
-    # Create independent rng for each scheme to guarantee that adding/removing
-    # a scheme doesn't alter the random numbers seen by other schemes
-    scheme_rngs = {s: np.random.default_rng(rng.integers(0, 2**31)) for s in schemes}
-
-    # Cache ideal AO result if needed by multiple schemes
-    # (avoids running the same ideal-model optimization twice)
-    _ideal_theta, _ideal_gain = None, None
-    if 'upper_bound' in schemes or 'ideal_design_practical_eval' in schemes:
-        _ideal_rng = np.random.default_rng(rng.integers(0, 2**31))
-        _ideal_theta, _ideal_gain = ao_optimize(
-            Phi, h_d, N, method='prop1', use_practical=False, rng=_ideal_rng)
+    def run_ideal_design():
+        """Run the ideal-model AO design used by two paper schemes."""
+        return ao_optimize(
+            Phi, h_d, N, method='prop1', use_practical=False,
+            rng=_rng_for(seed, 'ideal_design'))
 
     for scheme in schemes:
-        s_rng = scheme_rngs[scheme]
-        
+        s_rng = _rng_for(seed, scheme)
+        scheme_start = time.perf_counter()
+
         if scheme == 'upper_bound':
-            # Use cached ideal AO result
-            results[scheme] = compute_rate(_ideal_gain)
+            _, gain = run_ideal_design()
+            results[scheme] = compute_rate(gain)
 
         elif scheme == 'ao_practical_prop1':
             # AO with practical model, Proposition 1
@@ -84,17 +113,27 @@ def _run_single_realization(N, d_horizontal, schemes, rng):
             results[scheme] = compute_rate(gain)
 
         elif scheme == 'ideal_design_practical_eval':
-            # Use cached ideal AO result, evaluate with practical model
-            gain = compute_channel_gain(_ideal_theta, Phi, h_d, use_practical=True)
+            theta_ideal, _ = run_ideal_design()
+            gain = compute_channel_gain(theta_ideal, Phi, h_d, use_practical=True)
             results[scheme] = compute_rate(gain)
 
         elif scheme == 'lower_bound':
             # No IRS
             results[scheme] = compute_lower_bound_rate(h_d)
 
+        elif scheme == 'pso_default':
+            _, gain = pso_default_optimize(Phi, h_d, N, use_practical=True,
+                                           rng=s_rng)
+            results[scheme] = compute_rate(gain)
+
         elif scheme == 'pso_practical':
             _, gain = pso_optimize(Phi, h_d, N, use_practical=True,
                                    rng=s_rng)
+            results[scheme] = compute_rate(gain)
+
+        elif scheme == 'cmaes_default':
+            _, gain = cmaes_default_optimize(Phi, h_d, N, use_practical=True,
+                                             rng=s_rng)
             results[scheme] = compute_rate(gain)
 
         elif scheme == 'cmaes_practical':
@@ -125,19 +164,20 @@ def _run_single_realization(N, d_horizontal, schemes, rng):
         else:
             raise ValueError(f"Unknown scheme: {scheme}")
 
-    return results
+        runtimes[scheme] = time.perf_counter() - scheme_start
+
+    return results, runtimes
 
 
 def _realization_worker(args):
     """
     Worker function for parallel realization execution.
 
-    Creates a fresh RNG from the given seed and runs one realization.
+    Runs one realization from a deterministic task seed.
     This function is at module level for pickling (multiprocessing on Windows).
     """
     N, d_horizontal, schemes, seed = args
-    rng = np.random.default_rng(seed)
-    return _run_single_realization(N, d_horizontal, list(schemes), rng)
+    return _run_single_realization(N, d_horizontal, list(schemes), seed)
 
 
 def _run_parallel(param_values, param_name, schemes, num_realizations,
@@ -188,6 +228,7 @@ def _run_parallel(param_values, param_name, schemes, num_realizations,
     print(f"{'='*60}")
 
     rates_all = {s: np.zeros((len(param_values), num_realizations)) for s in schemes}
+    times_all = {s: np.zeros((len(param_values), num_realizations)) for s in schemes}
 
     if n_workers > 1 and total_tasks > 1:
         with ProcessPoolExecutor(max_workers=n_workers) as executor:
@@ -199,9 +240,10 @@ def _run_parallel(param_values, param_name, schemes, num_realizations,
             completed = 0
             for future in as_completed(future_to_idx):
                 pi, r = future_to_idx[future]
-                res = future.result()
+                res, runtimes = future.result()
                 for s in schemes:
                     rates_all[s][pi, r] = res[s]
+                    times_all[s][pi, r] = runtimes[s]
                 completed += 1
                 if completed % max(1, total_tasks // 10) == 0:
                     elapsed = time.time() - start_time
@@ -213,9 +255,10 @@ def _run_parallel(param_values, param_name, schemes, num_realizations,
         # Single-worker fallback (useful for debugging)
         for i, task in enumerate(all_tasks):
             pi, r = all_indices[i]
-            res = _realization_worker(task)
+            res, runtimes = _realization_worker(task)
             for s in schemes:
                 rates_all[s][pi, r] = res[s]
+                times_all[s][pi, r] = runtimes[s]
             if (i + 1) % max(1, total_tasks // 10) == 0:
                 elapsed = time.time() - start_time
                 eta = (elapsed / (i + 1) * (total_tasks - i - 1)
@@ -223,22 +266,45 @@ def _run_parallel(param_values, param_name, schemes, num_realizations,
                 print(f"  Progress: {i+1:>5}/{total_tasks} "
                       f"| elapsed: {elapsed:.0f}s | ETA: {eta:.0f}s")
 
-    print(f"  Completed in {time.time() - start_time:.1f}s\n")
-    return {s: np.mean(rates_all[s], axis=1) for s in schemes}
+    wall_seconds = time.time() - start_time
+    print(f"  Completed in {wall_seconds:.1f}s\n")
+
+    results = {s: np.mean(rates_all[s], axis=1) for s in schemes}
+    results.update({
+        'runtime_scheme_names': np.array(schemes),
+        'runtime_mean_seconds': np.vstack([
+            np.mean(times_all[s], axis=1) for s in schemes
+        ]),
+        'runtime_total_seconds': np.vstack([
+            np.sum(times_all[s], axis=1) for s in schemes
+        ]),
+        'runtime_overall_mean_seconds': np.array([
+            np.mean(times_all[s]) for s in schemes
+        ]),
+        'runtime_overall_total_seconds': np.array([
+            np.sum(times_all[s]) for s in schemes
+        ]),
+        'runtime_num_samples': np.array(total_tasks),
+        'runtime_wall_seconds': np.array(wall_seconds),
+    })
+    return results
 
 
-def run_simulation_fig5(num_realizations=NUM_REALIZATIONS, save_path=None):
+def run_simulation_fig5(num_realizations=NUM_REALIZATIONS, save_path=None,
+                        seed=SEED):
     """
     Fig. 5: Achievable rate vs. AP-user horizontal distance (N=40).
 
-    Compares 7 schemes:
+    Compares the paper's continuous-phase schemes plus PSO/CMA-ES baselines:
         1. Upper bound (ideal model)
         2. AO + practical model (Proposition 1)
         3. AO + practical model (1D search)
         4. Ideal design, practical evaluation
         5. Lower bound (no IRS)
-        6. PSO + practical model
-        7. CMA-ES + practical model
+        6. Default PSO + practical model
+        7. Default CMA-ES + practical model
+        8. Improved PSO + practical model
+        9. Improved CMA-ES + practical model
 
     Returns
     -------
@@ -246,17 +312,9 @@ def run_simulation_fig5(num_realizations=NUM_REALIZATIONS, save_path=None):
     """
     N = N_DEFAULT
     d_values = np.arange(480, 501, 2)  # 480, 482, ..., 500 (paper range)
-    schemes = [
-        'upper_bound',
-        'ao_practical_prop1',
-        'ao_practical_1d',
-        'ideal_design_practical_eval',
-        'lower_bound',
-        'pso_practical',
-        'cmaes_practical'
-    ]
+    schemes = CONTINUOUS_COMPARISON_SCHEMES.copy()
 
-    master_rng = np.random.default_rng(SEED)
+    master_rng = np.random.default_rng(seed)
 
     results = _run_parallel(
         d_values, 'd', schemes, num_realizations, master_rng,
@@ -264,7 +322,10 @@ def run_simulation_fig5(num_realizations=NUM_REALIZATIONS, save_path=None):
         fixed_N=N
     )
 
-    output = {'d_values': d_values}
+    output = {
+        'd_values': d_values,
+        'seed': np.array(seed),
+    }
     output.update(results)
 
     if save_path:
@@ -274,7 +335,8 @@ def run_simulation_fig5(num_realizations=NUM_REALIZATIONS, save_path=None):
     return output
 
 
-def run_simulation_fig6(num_realizations=NUM_REALIZATIONS, save_path=None):
+def run_simulation_fig6(num_realizations=NUM_REALIZATIONS, save_path=None,
+                        seed=SEED):
     """
     Fig. 6: Achievable rate vs. number of reflecting elements (d=498m).
 
@@ -284,17 +346,9 @@ def run_simulation_fig6(num_realizations=NUM_REALIZATIONS, save_path=None):
     """
     d_horizontal = 498
     N_values = np.array([10, 20, 30, 40, 50, 60, 70, 80])
-    schemes = [
-        'upper_bound',
-        'ao_practical_prop1',
-        'ao_practical_1d',
-        'ideal_design_practical_eval',
-        'lower_bound',
-        'pso_practical',
-        'cmaes_practical'
-    ]
+    schemes = CONTINUOUS_COMPARISON_SCHEMES.copy()
 
-    master_rng = np.random.default_rng(SEED + 1)
+    master_rng = np.random.default_rng(seed + 1)
 
     results = _run_parallel(
         N_values, 'N', schemes, num_realizations, master_rng,
@@ -302,7 +356,10 @@ def run_simulation_fig6(num_realizations=NUM_REALIZATIONS, save_path=None):
         fixed_d=d_horizontal
     )
 
-    output = {'N_values': N_values}
+    output = {
+        'N_values': N_values,
+        'seed': np.array(seed),
+    }
     output.update(results)
 
     if save_path:
@@ -312,7 +369,8 @@ def run_simulation_fig6(num_realizations=NUM_REALIZATIONS, save_path=None):
     return output
 
 
-def run_simulation_fig7(num_realizations=NUM_REALIZATIONS, save_path=None):
+def run_simulation_fig7(num_realizations=NUM_REALIZATIONS, save_path=None,
+                        seed=SEED):
     """
     Fig. 7: Achievable rate vs. distance with discrete phase shifts (N=40).
 
@@ -332,7 +390,7 @@ def run_simulation_fig7(num_realizations=NUM_REALIZATIONS, save_path=None):
         schemes.append(f'ao_practical_discrete_{b}')
         schemes.append(f'ao_ideal_discrete_{b}')
 
-    master_rng = np.random.default_rng(SEED + 2)
+    master_rng = np.random.default_rng(seed + 2)
 
     results = _run_parallel(
         d_values, 'd', schemes, num_realizations, master_rng,
@@ -340,7 +398,10 @@ def run_simulation_fig7(num_realizations=NUM_REALIZATIONS, save_path=None):
         fixed_N=N
     )
 
-    output = {'d_values': d_values}
+    output = {
+        'd_values': d_values,
+        'seed': np.array(seed),
+    }
     output.update(results)
 
     if save_path:

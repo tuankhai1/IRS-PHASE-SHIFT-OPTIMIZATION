@@ -1,16 +1,10 @@
 """
 CMA-ES (Covariance Matrix Adaptation Evolution Strategy) for IRS optimization.
 
-CMA-ES is a state-of-the-art derivative-free optimization algorithm that
-adapts the full covariance matrix of a multivariate normal search distribution.
+CMA-ES is a derivative-free optimization algorithm that adapts the
+covariance matrix of a multivariate normal search distribution.
 
-Key advantages over PSO for this problem:
-    1. Learns correlations between IRS elements' phase shifts
-    2. Self-adapting step size (no manual tuning of inertia/coefficients)
-    3. Rotation-invariant — natural for angular optimization
-    4. Strong convergence properties
-
-Key design decisions in this implementation:
+Key design decisions in the improved implementation:
     - Screening initialization: Evaluates many random candidates plus
       analytical heuristics, then uses the best as the CMA-ES mean.
       No dependency on AO or any other optimizer.
@@ -18,9 +12,7 @@ Key design decisions in this implementation:
       evolution paths) operate in unconstrained Euclidean space.
       Angles are wrapped to [-π,π) only for fitness evaluation.
       This prevents covariance corruption from angle discontinuities.
-    - Doubled population for better exploration in high dimensions.
-    - Restart mechanism: If CMA-ES converges early, it restarts from
-      the best-so-far with increased step size to escape local optima.
+    - Multiple starts are used to reduce dependence on one initialization.
 
 Implementation follows:
     N. Hansen, "The CMA Evolution Strategy: A Tutorial," 2016.
@@ -29,7 +21,6 @@ Implementation follows:
 import numpy as np
 from phase_shift_model import quantize_angles, wrap_angle
 from objective import compute_channel_gain
-from algorithms.polishing import gradient_polish
 from config import CMAES_MAX_ITER, CMAES_SIGMA0, CMAES_TOL
 
 
@@ -101,9 +92,10 @@ def _screening_init(Phi, h_d, N, use_practical, discrete_set, rng):
 
 
 def _run_cmaes_single(Phi, h_d, N, use_practical, discrete_set,
-                       m_init, sigma_init, max_gen, tol, rng):
+                      m_init, sigma_init, max_gen, tol, rng,
+                      population_multiplier=2):
     """
-    Run one CMA-ES session (used by the restart mechanism).
+    Run one CMA-ES session.
 
     Parameters
     ----------
@@ -124,8 +116,7 @@ def _run_cmaes_single(Phi, h_d, N, use_practical, discrete_set,
     # ================================================================
     # Strategy Parameters (from Hansen's tutorial, with 2x population)
     # ================================================================
-    # Doubled population for better exploration in angular space
-    lam = 2 * (4 + int(3 * np.log(N)))        # offspring per generation
+    lam = population_multiplier * (4 + int(3 * np.log(N)))  # offspring per generation
     mu = lam // 2                             # number of parents
 
     # Recombination weights (log-linear)
@@ -254,6 +245,33 @@ def _run_cmaes_single(Phi, h_d, N, use_practical, discrete_set,
     return best_theta, best_obj
 
 
+def cmaes_default_optimize(Phi, h_d, N, use_practical=True,
+                           discrete_set=None,
+                           max_iter=CMAES_MAX_ITER,
+                           sigma0=CMAES_SIGMA0,
+                           tol=CMAES_TOL,
+                           rng=None):
+    """
+    Standard single-start CMA-ES baseline.
+
+    This version starts from one random mean, uses the standard population
+    size from Hansen's rule of thumb, and skips the screening/multi-start
+    choices used by ``cmaes_optimize``.
+    """
+    if rng is None:
+        rng = np.random.default_rng()
+
+    m_init = rng.uniform(-np.pi, np.pi, size=N)
+    if discrete_set is not None:
+        m_init = quantize_angles(m_init[np.newaxis, :], discrete_set)[0]
+
+    return _run_cmaes_single(
+        Phi, h_d, N, use_practical, discrete_set,
+        m_init, sigma0, max_iter, tol, rng,
+        population_multiplier=1
+    )
+
+
 def cmaes_optimize(Phi, h_d, N, use_practical=True,
                    discrete_set=None,
                    max_iter=CMAES_MAX_ITER,
@@ -264,15 +282,10 @@ def cmaes_optimize(Phi, h_d, N, use_practical=True,
     Multi-start CMA-ES for IRS phase shift optimization.
 
     Runs multiple independent CMA-ES sessions from independently
-    screened starting points, each followed by gradient polishing.
-    Returns the best result across all runs.
+    screened starting points and returns the best result across all runs.
 
-    This gives CMA-ES a structural advantage over AO:
-    - AO: 1 random start → 1 local optimum
-    - CMA-ES: 3 independent screened starts → best of 3 optima
-
-    Over many channel realizations, CMA-ES consistently finds the
-    best basin more often than AO's single-start approach.
+    Notes:
+    Multiple starts are an implementation choice for the improved variant.
 
     Parameters
     ----------
@@ -323,10 +336,6 @@ def cmaes_optimize(Phi, h_d, N, use_practical=True,
         # ---- Independent screening for this start ----
         m_init = _screening_init(Phi, h_d, N, use_practical, discrete_set, start_rng)
 
-        # Light gradient refinement on screened starting point
-        if discrete_set is None:
-            m_init, _ = gradient_polish(m_init, Phi, h_d, use_practical, n_steps=5)
-
         sigma = min(sigma0, np.pi / 3)
 
         # ---- Run CMA-ES from this starting point ----
@@ -334,15 +343,6 @@ def cmaes_optimize(Phi, h_d, N, use_practical=True,
             Phi, h_d, N, use_practical, discrete_set,
             m_init, sigma, gens_per_start, tol, start_rng
         )
-
-        # ---- Heavy gradient polish on CMA-ES result ----
-        if discrete_set is None:
-            polished, polished_obj = gradient_polish(
-                best_theta, Phi, h_d, use_practical,
-                n_steps=30, lr_init=0.08)
-            if polished_obj > best_obj:
-                best_theta = polished
-                best_obj = polished_obj
 
         # ---- Track global best across all starts ----
         if best_obj > best_obj_global:

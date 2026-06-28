@@ -5,9 +5,6 @@ __pycache__/
 .venv/
 venv/
 
-# Generated simulation outputs
-results/
-
 # LaTeX build artifacts
 *.aux
 *.log
