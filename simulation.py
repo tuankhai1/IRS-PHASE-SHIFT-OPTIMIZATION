@@ -23,7 +23,9 @@ from channel_model import generate_channels
 from objective import compute_channel_gain, compute_rate, compute_lower_bound_rate
 from algorithms.ao import ao_optimize
 from algorithms.pso import pso_optimize
-from algorithms.cmaes import cmaes_default_optimize, cmaes_optimize
+from algorithms.gwo import gwo_optimize, gwo_component_optimize
+from algorithms.pso_component import pso_component_optimize
+from algorithms.apso_component import apso_component_optimize
 
 # Number of parallel workers.
 # Cap at half the CPU count (max 12) to avoid memory exhaustion —
@@ -41,13 +43,18 @@ PAPER_CONTINUOUS_SCHEMES = [
 
 METAHEURISTIC_COMPARISON_SCHEMES = [
     'pso',
-    'cmaes_default',
-    'cmaes_practical',
+    'gwo',
 ]
 
 CONTINUOUS_COMPARISON_SCHEMES = (
     PAPER_CONTINUOUS_SCHEMES + METAHEURISTIC_COMPARISON_SCHEMES
 )
+
+COMPONENT_COMPARISON_SCHEMES = [
+    'pso_component',
+    'apso_component',
+    'gwo_component',
+]
 
 
 def _stable_seed(base_seed, *labels):
@@ -125,15 +132,23 @@ def _run_single_realization(N, d_horizontal, schemes, seed):
                                    rng=s_rng)
             results[scheme] = compute_rate(gain)
 
-        elif scheme == 'cmaes_default':
-            _, gain = cmaes_default_optimize(Phi, h_d, N, use_practical=True,
-                                             rng=s_rng)
+        elif scheme == 'gwo':
+            _, gain = gwo_optimize(Phi, h_d, N, use_practical=True,
+                                   rng=s_rng)
             results[scheme] = compute_rate(gain)
 
-        elif scheme == 'cmaes_practical':
-            _, gain = cmaes_optimize(Phi, h_d, N, use_practical=True,
-                                     rng=s_rng)
-            results[scheme] = compute_rate(gain)
+        # --- Component-level schemes ---
+        elif scheme == 'pso_component':
+            _, rate = pso_component_optimize(Phi, h_d, N, rng=s_rng)
+            results[scheme] = rate
+
+        elif scheme == 'apso_component':
+            _, rate = apso_component_optimize(Phi, h_d, N, rng=s_rng)
+            results[scheme] = rate
+
+        elif scheme == 'gwo_component':
+            _, rate = gwo_component_optimize(Phi, h_d, N, rng=s_rng)
+            results[scheme] = rate
 
         # --- Discrete phase shift schemes (for Fig. 7) ---
         elif scheme.startswith('ao_practical_discrete_'):
@@ -284,20 +299,50 @@ def _run_parallel(param_values, param_name, schemes, num_realizations,
     return results
 
 
+# ============================================================
+# Component-Level Simulation Functions (Figs. 8-10)
+# ============================================================
+
+def _convergence_worker(args):
+    """
+    Worker function for parallel convergence realization.
+
+    Runs all component-level algorithms with convergence history
+    for a single channel realization.
+    """
+    N, d_horizontal, seed = args
+    h_d, Phi = generate_channels(N, d_horizontal, _rng_for(seed, 'channel'))
+
+    histories = {}
+
+    _, _, hist = pso_component_optimize(
+        Phi, h_d, N, rng=_rng_for(seed, 'pso_comp'), return_history=True)
+    histories['pso_component'] = hist
+
+    _, _, hist = apso_component_optimize(
+        Phi, h_d, N, rng=_rng_for(seed, 'apso_comp'), return_history=True)
+    histories['apso_component'] = hist
+
+    _, _, hist = gwo_component_optimize(
+        Phi, h_d, N, rng=_rng_for(seed, 'gwo_comp'), return_history=True)
+    histories['gwo_component'] = hist
+
+    return histories
+
+
 def run_simulation_fig5(num_realizations=NUM_REALIZATIONS, save_path=None,
                         seed=SEED):
     """
     Fig. 5: Achievable rate vs. AP-user horizontal distance (N=40).
 
-    Compares the paper's continuous-phase schemes plus PSO/CMA-ES baselines:
+    Compares the paper's continuous-phase schemes plus PSO/GWO baselines:
         1. Upper bound (ideal model)
         2. AO + practical model (Proposition 1)
         3. AO + practical model (1D search)
         4. Ideal design, practical evaluation
         5. Lower bound (no IRS)
         6. PSO + practical model
-        7. Default CMA-ES + practical model
-        8. Improved CMA-ES + practical model
+        7. GWO + practical model
 
     Returns
     -------
@@ -396,6 +441,150 @@ def run_simulation_fig7(num_realizations=NUM_REALIZATIONS, save_path=None,
         'seed': np.array(seed),
     }
     output.update(results)
+
+    if save_path:
+        np.savez(save_path, **output)
+        print(f"  Results saved to {save_path}")
+
+    return output
+
+
+def run_simulation_fig8(num_realizations=NUM_REALIZATIONS, save_path=None,
+                        seed=SEED):
+    """
+    Fig. 8: Component-level rate vs. AP-user horizontal distance (N=40).
+
+    Compares component-level PSO, APSO, GWO with phase-level AO baseline.
+
+    Returns
+    -------
+    dict with 'd_values' and per-scheme average rates.
+    """
+    N = N_DEFAULT
+    d_values = np.arange(480, 501, 2)
+    schemes = [
+        'upper_bound', 'ao_practical_prop1',
+        'pso_component', 'apso_component', 'gwo_component',
+        'lower_bound',
+    ]
+
+    master_rng = np.random.default_rng(seed + 3)
+
+    results = _run_parallel(
+        d_values, 'd', schemes, num_realizations, master_rng,
+        f"Fig. 8: Component-Level Rate vs. Distance (N={N})",
+        fixed_N=N
+    )
+
+    output = {'d_values': d_values, 'seed': np.array(seed)}
+    output.update(results)
+
+    if save_path:
+        np.savez(save_path, **output)
+        print(f"  Results saved to {save_path}")
+
+    return output
+
+
+def run_simulation_fig9(num_realizations=NUM_REALIZATIONS, save_path=None,
+                        seed=SEED):
+    """
+    Fig. 9: Component-level rate vs. number of reflecting elements (d=498m).
+
+    Returns
+    -------
+    dict with 'N_values' and per-scheme average rates.
+    """
+    d_horizontal = 498
+    N_values = np.array([10, 20, 30, 40, 50, 60, 70, 80])
+    schemes = [
+        'upper_bound', 'ao_practical_prop1',
+        'pso_component', 'apso_component', 'gwo_component',
+        'lower_bound',
+    ]
+
+    master_rng = np.random.default_rng(seed + 4)
+
+    results = _run_parallel(
+        N_values, 'N', schemes, num_realizations, master_rng,
+        f"Fig. 9: Component-Level Rate vs. N (d={d_horizontal}m)",
+        fixed_d=d_horizontal
+    )
+
+    output = {'N_values': N_values, 'seed': np.array(seed)}
+    output.update(results)
+
+    if save_path:
+        np.savez(save_path, **output)
+        print(f"  Results saved to {save_path}")
+
+    return output
+
+
+def run_simulation_fig10(num_realizations=20, save_path=None, seed=SEED):
+    """
+    Fig. 10: Convergence comparison of component-level algorithms.
+
+    Shows average R_SE vs. iteration for PSO, APSO, GWO component-level
+    at d=498m, N=40, averaged over num_realizations channel realizations.
+
+    Returns
+    -------
+    dict with 'iterations' and per-scheme average convergence curves.
+    """
+    N = N_DEFAULT
+    d_horizontal = 498
+    schemes = ['pso_component', 'apso_component', 'gwo_component']
+
+    master_rng = np.random.default_rng(seed + 5)
+
+    tasks = []
+    for r in range(num_realizations):
+        task_seed = int(master_rng.integers(0, 2**31))
+        tasks.append((N, d_horizontal, task_seed))
+
+    all_histories = {s: [] for s in schemes}
+    start_time = time.time()
+    n_workers = min(_N_WORKERS, num_realizations)
+
+    print(f"\n{'='*60}")
+    print(f"  Fig. 10: Convergence (N={N}, d={d_horizontal}m, "
+          f"{num_realizations} realizations, {n_workers} workers)")
+    print(f"{'='*60}")
+
+    if n_workers > 1 and num_realizations > 1:
+        with ProcessPoolExecutor(max_workers=n_workers) as executor:
+            future_to_idx = {}
+            for i, task in enumerate(tasks):
+                future = executor.submit(_convergence_worker, task)
+                future_to_idx[future] = i
+
+            completed = 0
+            for future in as_completed(future_to_idx):
+                histories = future.result()
+                for s in schemes:
+                    all_histories[s].append(histories[s])
+                completed += 1
+                if completed % max(1, num_realizations // 5) == 0:
+                    elapsed = time.time() - start_time
+                    print(f"  Progress: {completed}/{num_realizations} "
+                          f"| elapsed: {elapsed:.0f}s")
+    else:
+        for i, task in enumerate(tasks):
+            histories = _convergence_worker(task)
+            for s in schemes:
+                all_histories[s].append(histories[s])
+
+    wall_seconds = time.time() - start_time
+    print(f"  Completed in {wall_seconds:.1f}s\n")
+
+    # Average convergence over realizations
+    output = {
+        'iterations': np.arange(len(all_histories[schemes[0]][0])),
+        'seed': np.array(seed),
+    }
+    for s in schemes:
+        output[s] = np.mean(all_histories[s], axis=0)
 
     if save_path:
         np.savez(save_path, **output)

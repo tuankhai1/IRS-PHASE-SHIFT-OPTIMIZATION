@@ -17,8 +17,11 @@ import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 
-from simulation import run_simulation_fig5, run_simulation_fig6, run_simulation_fig7
-from plot_results import plot_fig5, plot_fig6, plot_fig7
+from simulation import (run_simulation_fig5, run_simulation_fig6,
+                        run_simulation_fig7, run_simulation_fig8,
+                        run_simulation_fig9, run_simulation_fig10)
+from plot_results import (plot_fig5, plot_fig6, plot_fig7,
+                          plot_fig8, plot_fig9, plot_fig10)
 from config import NUM_REALIZATIONS, SEED
 
 
@@ -28,8 +31,9 @@ def main():
     )
     parser.add_argument('--realizations', type=int, default=NUM_REALIZATIONS,
                         help='Number of channel realizations')
-    parser.add_argument('--fig', type=int, choices=[5, 6, 7], default=None,
-                        help='Run only a specific figure (5, 6, or 7)')
+    parser.add_argument('--fig', type=int, choices=[5, 6, 7, 8, 9, 10],
+                        default=None,
+                        help='Run only a specific figure (5-10)')
     args = parser.parse_args()
 
     # Create output directory
@@ -38,13 +42,13 @@ def main():
 
     print(f"\n{'#'*60}")
     print(f"  IRS Phase Shift Optimization Project")
-    print(f"  Mode: paper figures with PSO/CMA-ES comparisons")
+    print(f"  Mode: paper figures + component-level optimization")
     print(f"  Channel realizations: {args.realizations}")
     print(f"  Base seed: {SEED}")
     print(f"  Output directory: {out_dir}")
     print(f"{'#'*60}")
 
-    figs_to_run = [args.fig] if args.fig else [5, 6, 7]
+    figs_to_run = [args.fig] if args.fig else [5, 6, 7, 8, 9, 10]
 
     # ---- Fig. 5 ----  
     if 5 in figs_to_run:
@@ -84,6 +88,41 @@ def main():
         print_runtime_summary(results7, 'Fig. 7')
         save_runtime_table(results7, 'd_values',
                            save_path=os.path.join(out_dir, 'runtime_table_fig7.md'))
+
+    # ---- Fig. 8 ----
+    if 8 in figs_to_run:
+        results8 = run_simulation_fig8(
+            num_realizations=args.realizations,
+            save_path=os.path.join(out_dir, 'results_fig8.npz')
+        )
+        plot_fig8(results8,
+                  save_path=os.path.join(out_dir, 'fig8_component_vs_distance.png'))
+        print_summary(results8, 'Fig. 8', 'd_values')
+        print_runtime_summary(results8, 'Fig. 8')
+        save_runtime_table(results8, 'd_values',
+                           save_path=os.path.join(out_dir, 'runtime_table_fig8.md'))
+
+    # ---- Fig. 9 ----
+    if 9 in figs_to_run:
+        results9 = run_simulation_fig9(
+            num_realizations=args.realizations,
+            save_path=os.path.join(out_dir, 'results_fig9.npz')
+        )
+        plot_fig9(results9,
+                  save_path=os.path.join(out_dir, 'fig9_component_vs_N.png'))
+        print_summary(results9, 'Fig. 9', 'N_values')
+        print_runtime_summary(results9, 'Fig. 9')
+        save_runtime_table(results9, 'N_values',
+                           save_path=os.path.join(out_dir, 'runtime_table_fig9.md'))
+
+    # ---- Fig. 10 ----
+    if 10 in figs_to_run:
+        results10 = run_simulation_fig10(
+            num_realizations=min(args.realizations, 20),
+            save_path=os.path.join(out_dir, 'results_fig10.npz')
+        )
+        plot_fig10(results10,
+                   save_path=os.path.join(out_dir, 'fig10_convergence.png'))
 
     print(f"\n{'#'*60}")
     print(f"  All simulations complete!")

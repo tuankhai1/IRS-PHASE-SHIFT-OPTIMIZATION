@@ -69,7 +69,42 @@ PSO_C1 = 1.49445            # Cognitive coefficient
 PSO_C2 = 1.49445            # Social coefficient
 PSO_V_MAX = np.pi           # Velocity clamp (radians)
 
-# --- CMA-ES ---
-CMAES_MAX_ITER = 300        # Maximum generations
-CMAES_SIGMA0 = np.pi        # Initial step size covers [-pi, pi]
-CMAES_TOL = 1e-8            # Convergence tolerance
+# --- Grey Wolf Optimizer (GWO) ---
+# Ref: S. Mirjalili et al., "Grey Wolf Optimizer,"
+#      Advances in Engineering Software, vol. 69, pp. 46-61, 2014.
+GWO_POP_SIZE = 50              # Number of wolves
+GWO_MAX_ITER = 200             # Maximum iterations
+
+# ============================================================
+# Circuit Model Parameters (Component-Level Optimization)
+# ============================================================
+# Operating frequency: 5.8 GHz (ISM band)
+# Ref: ITU Radio Regulations Art. 5, Footnote 5.150;
+#      C. Liaskos et al., "A New Wireless Communication Paradigm
+#      through Software-Controlled Metasurfaces," IEEE Commun. Mag., 2018.
+FREQ = 5.8e9                   # Operating frequency (Hz)
+OMEGA = 2 * np.pi * FREQ      # Angular frequency (rad/s)
+Z0 = 377.0                    # Free-space impedance (Ω)
+
+# Component bounds based on typical varactor-based IRS elements.
+# Ref: Skyworks SMV1231-079LF datasheet; extended for design coverage.
+L1_BOUNDS = (0.5e-9, 5.0e-9)  # Coupling inductance (H)
+L2_BOUNDS = (0.1e-9, 3.0e-9)  # Varactor series inductance (H)
+C_BOUNDS  = (0.1e-12, 5.0e-12) # Varactor capacitance (F)
+R_BOUNDS  = (0.5, 5.0)        # Varactor series resistance (Ω)
+
+# --- Component-level PSO ---
+COMP_PSO_POP_SIZE = 100        # Larger population for 4N-dim space
+COMP_PSO_MAX_ITER = 400        # More iterations for larger space
+
+# --- Component-level Adaptive PSO (APSO) ---
+# Ref: Y. Shi, R. Eberhart, "A modified particle swarm optimizer,"
+#      Proc. IEEE ICEC, pp. 69-73, 1998.
+COMP_APSO_POP_SIZE = 100
+COMP_APSO_MAX_ITER = 400
+COMP_APSO_W_MAX = 0.9         # Initial inertia (exploration)
+COMP_APSO_W_MIN = 0.4         # Final inertia (exploitation)
+
+# --- Component-level GWO ---
+COMP_GWO_POP_SIZE = 100
+COMP_GWO_MAX_ITER = 400
