@@ -9,6 +9,7 @@ Usage:
     python main.py --fig 5         # Run only Fig. 5
     python main.py --fig 6         # Run only Fig. 6
     python main.py --fig 7         # Run only Fig. 7
+    python main.py --fig 12        # Run fixed-component ablation
 """
 
 import argparse
@@ -19,9 +20,13 @@ matplotlib.use('Agg')
 
 from simulation import (run_simulation_fig5, run_simulation_fig6,
                         run_simulation_fig7, run_simulation_fig8,
-                        run_simulation_fig9, run_simulation_fig10)
+                        run_simulation_fig9, run_simulation_fig10,
+                        run_simulation_fig11)
+from fixed_component_simulation import run_simulation_fig12
 from plot_results import (plot_fig5, plot_fig6, plot_fig7,
-                          plot_fig8, plot_fig9, plot_fig10)
+                          plot_fig8, plot_fig9, plot_fig10,
+                          plot_fig11)
+from plot_fixed_component import plot_fig12
 from config import NUM_REALIZATIONS, SEED
 
 
@@ -31,9 +36,9 @@ def main():
     )
     parser.add_argument('--realizations', type=int, default=NUM_REALIZATIONS,
                         help='Number of channel realizations')
-    parser.add_argument('--fig', type=int, choices=[5, 6, 7, 8, 9, 10],
+    parser.add_argument('--fig', type=int, choices=[5, 6, 7, 8, 9, 10, 11, 12],
                         default=None,
-                        help='Run only a specific figure (5-10)')
+                        help='Run only a specific figure (5-12)')
     args = parser.parse_args()
 
     # Create output directory
@@ -48,7 +53,7 @@ def main():
     print(f"  Output directory: {out_dir}")
     print(f"{'#'*60}")
 
-    figs_to_run = [args.fig] if args.fig else [5, 6, 7, 8, 9, 10]
+    figs_to_run = [args.fig] if args.fig else [5, 6, 7, 8, 9, 10, 11, 12]
 
     # ---- Fig. 5 ----  
     if 5 in figs_to_run:
@@ -123,6 +128,29 @@ def main():
         )
         plot_fig10(results10,
                    save_path=os.path.join(out_dir, 'fig10_convergence.png'))
+
+    # ---- Fig. 11 ----
+    if 11 in figs_to_run:
+        results11 = run_simulation_fig11(
+            num_realizations=args.realizations,
+            save_path=os.path.join(out_dir, 'results_fig11.npz')
+        )
+        plot_fig11(results11,
+                   save_path=os.path.join(out_dir, 'fig11_phase_vs_component.png'))
+        print_summary(results11, 'Fig. 11', 'd_values')
+        print_runtime_summary(results11, 'Fig. 11')
+        save_runtime_table(results11, 'd_values',
+                           save_path=os.path.join(out_dir, 'runtime_table_fig11.md'))
+
+    # ---- Fig. 12 ----
+    if 12 in figs_to_run:
+        results12 = run_simulation_fig12(
+            num_realizations=args.realizations,
+            save_path=os.path.join(out_dir, 'results_fig12.npz')
+        )
+        plot_fig12(results12,
+                   save_path=os.path.join(out_dir, 'fig12_fixed_component_ablation.png'))
+        print_summary(results12, 'Fig. 12', 'd_values')
 
     print(f"\n{'#'*60}")
     print(f"  All simulations complete!")

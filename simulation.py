@@ -23,9 +23,15 @@ from channel_model import generate_channels
 from objective import compute_channel_gain, compute_rate, compute_lower_bound_rate
 from algorithms.ao import ao_optimize
 from algorithms.pso import pso_optimize
+from algorithms.apso import apso_optimize
 from algorithms.gwo import gwo_optimize, gwo_component_optimize
 from algorithms.pso_component import pso_component_optimize
 from algorithms.apso_component import apso_component_optimize
+from algorithms.hybrid import (
+    hybrid_phase_component_optimize,
+    hybrid_pso_pso_component_optimize,
+    hybrid_pso_gwo_component_optimize,
+)
 
 # Number of parallel workers.
 # Cap at half the CPU count (max 12) to avoid memory exhaustion —
@@ -43,6 +49,7 @@ PAPER_CONTINUOUS_SCHEMES = [
 
 METAHEURISTIC_COMPARISON_SCHEMES = [
     'pso',
+    'apso',
     'gwo',
 ]
 
@@ -132,6 +139,11 @@ def _run_single_realization(N, d_horizontal, schemes, seed):
                                    rng=s_rng)
             results[scheme] = compute_rate(gain)
 
+        elif scheme == 'apso':
+            _, gain = apso_optimize(Phi, h_d, N, use_practical=True,
+                                    rng=s_rng)
+            results[scheme] = compute_rate(gain)
+
         elif scheme == 'gwo':
             _, gain = gwo_optimize(Phi, h_d, N, use_practical=True,
                                    rng=s_rng)
@@ -148,6 +160,21 @@ def _run_single_realization(N, d_horizontal, schemes, seed):
 
         elif scheme == 'gwo_component':
             _, rate = gwo_component_optimize(Phi, h_d, N, rng=s_rng)
+            results[scheme] = rate
+
+        elif scheme == 'hybrid_component':
+            _, rate = hybrid_phase_component_optimize(
+                Phi, h_d, N, rng=s_rng)
+            results[scheme] = rate
+
+        elif scheme == 'hybrid_pso_pso_component':
+            _, rate = hybrid_pso_pso_component_optimize(
+                Phi, h_d, N, rng=s_rng)
+            results[scheme] = rate
+
+        elif scheme == 'hybrid_pso_gwo_component':
+            _, rate = hybrid_pso_gwo_component_optimize(
+                Phi, h_d, N, rng=s_rng)
             results[scheme] = rate
 
         # --- Discrete phase shift schemes (for Fig. 7) ---
@@ -585,6 +612,55 @@ def run_simulation_fig10(num_realizations=20, save_path=None, seed=SEED):
     }
     for s in schemes:
         output[s] = np.mean(all_histories[s], axis=0)
+
+    if save_path:
+        np.savez(save_path, **output)
+        print(f"  Results saved to {save_path}")
+
+    return output
+
+
+def run_simulation_fig11(num_realizations=NUM_REALIZATIONS, save_path=None,
+                         seed=SEED):
+    """
+    Fig. 11: Phase-level + component-level + hybrid comparison
+    across AP-user horizontal distance.
+
+    Focused comparison showing key schemes:
+        - Upper bound (ideal IRS)
+        - AO practical (Prop. 1)
+        - Best phase-level metaheuristic (PSO or APSO)
+        - Best component-level (PSO or APSO) + GWO component
+        - Hybrid (AO → warm-started component PSO)
+        - Lower bound (no IRS)
+
+    Uses wider distance range d ∈ [400, 500].
+
+    Returns
+    -------
+    dict with 'd_values' and per-scheme average rates.
+    """
+    N = N_DEFAULT
+    d_values = np.arange(480, 501, 2)
+    schemes = [
+        'upper_bound',
+        'pso_component', 'gwo_component',
+        'hybrid_component',
+        'hybrid_pso_pso_component',
+        'hybrid_pso_gwo_component',
+        'lower_bound',
+    ]
+
+    master_rng = np.random.default_rng(seed + 6)
+
+    results = _run_parallel(
+        d_values, 'd', schemes, num_realizations, master_rng,
+        f"Fig. 11: Phase + Component + Hybrid (N={N})",
+        fixed_N=N
+    )
+
+    output = {'d_values': d_values, 'seed': np.array(seed)}
+    output.update(results)
 
     if save_path:
         np.savez(save_path, **output)

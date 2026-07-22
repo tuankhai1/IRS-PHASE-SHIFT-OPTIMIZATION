@@ -18,7 +18,7 @@ import numpy as np
 from config import (
     COMP_APSO_POP_SIZE, COMP_APSO_MAX_ITER,
     COMP_APSO_W_MAX, COMP_APSO_W_MIN,
-    PSO_C1, PSO_C2,
+    APSO_C1, APSO_C2,
     OMEGA as CIRCUIT_OMEGA, Z0,
 )
 from circuit_model import get_component_bounds
@@ -31,7 +31,7 @@ def apso_component_optimize(
     max_iter=COMP_APSO_MAX_ITER,
     w_max=COMP_APSO_W_MAX,
     w_min=COMP_APSO_W_MIN,
-    c1=PSO_C1, c2=PSO_C2,
+    c1=APSO_C1, c2=APSO_C2,
     omega=CIRCUIT_OMEGA, Z0_val=Z0,
     rng=None, return_history=False,
 ):

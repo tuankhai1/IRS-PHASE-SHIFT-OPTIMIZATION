@@ -35,12 +35,17 @@ SCHEME_STYLES = {
 # Component-Level Scheme Styles (Figs. 8, 9)
 # ============================================================
 COMPONENT_STYLES = {
-    'pso_component':  {'label': 'PSO component-level',
-                       'color': '#7B1FA2', 'marker': 'v', 'ls': '-', 'lw': 2.2},
-    'apso_component': {'label': 'APSO component-level',
-                       'color': '#C62828', 'marker': 'p', 'ls': '-', 'lw': 2.2},
-    'gwo_component':  {'label': 'GWO component-level',
-                       'color': '#00695C', 'marker': 'H', 'ls': '-', 'lw': 2.2},
+    'pso_component':     {'label': 'PSO component-level',
+                          'color': '#8E24AA', 'marker': 'v', 'ls': '-', 'lw': 2.2},
+
+    'gwo_component':     {'label': 'GWO component-level',
+                          'color': '#00ACC1', 'marker': 'H', 'ls': '-', 'lw': 2.2},
+    'hybrid_component':  {'label': 'Hybrid (AO+PSO) component',
+                          'color': '#FB8C00', 'marker': '*', 'ls': '-', 'lw': 2.8},
+    'hybrid_pso_pso_component': {'label': 'Hybrid PSO-PSO component',
+                                 'color': '#1E88E5', 'marker': 'P', 'ls': '--', 'lw': 2.4},
+    'hybrid_pso_gwo_component': {'label': 'Hybrid PSO-GWO component',
+                                 'color': '#43A047', 'marker': 'X', 'ls': '-.', 'lw': 2.4},
 }
 
 # ============================================================
@@ -66,11 +71,10 @@ DISCRETE_STYLES = {
 # ============================================================
 CONVERGENCE_STYLES = {
     'pso_component':  {'label': 'PSO component-level',
-                       'color': '#7B1FA2', 'ls': '-', 'lw': 2.2},
-    'apso_component': {'label': 'APSO component-level',
-                       'color': '#C62828', 'ls': '--', 'lw': 2.2},
+                       'color': '#8E24AA', 'ls': '-', 'lw': 2.2},
+
     'gwo_component':  {'label': 'GWO component-level',
-                       'color': '#00695C', 'ls': '-.', 'lw': 2.2},
+                       'color': '#00ACC1', 'ls': '-.', 'lw': 2.2},
 }
 
 
@@ -212,7 +216,7 @@ def plot_fig8(results, save_path=None):
 
     plot_order = [
         'upper_bound', 'ao_practical_prop1',
-        'pso_component', 'apso_component', 'gwo_component',
+        'pso_component', 'gwo_component',
         'lower_bound',
     ]
 
@@ -249,7 +253,7 @@ def plot_fig9(results, save_path=None):
 
     plot_order = [
         'upper_bound', 'ao_practical_prop1',
-        'pso_component', 'apso_component', 'gwo_component',
+        'pso_component', 'gwo_component',
         'lower_bound',
     ]
 
@@ -284,7 +288,7 @@ def plot_fig10(results, save_path=None):
     fig, ax = plt.subplots(1, 1, figsize=(10, 7))
     iterations = results['iterations']
 
-    for scheme in ['pso_component', 'apso_component', 'gwo_component']:
+    for scheme in ['pso_component', 'gwo_component']:
         if scheme in results and scheme in CONVERGENCE_STYLES:
             style = CONVERGENCE_STYLES[scheme]
             ax.plot(iterations, results[scheme],
@@ -298,6 +302,53 @@ def plot_fig10(results, save_path=None):
     ax.legend(fontsize=11, loc='lower right', framealpha=0.9)
     ax.grid(True, linestyle='-', linewidth=0.6, alpha=0.6, color='#A0A0A0')
     ax.tick_params(direction='in', top=True, right=True, labelsize=11, pad=6)
+    fig.tight_layout()
+
+    if save_path:
+        fig.savefig(save_path, dpi=150, bbox_inches='tight')
+        print(f"  Figure saved to {save_path}")
+
+    return fig
+
+
+def plot_fig11(results, save_path=None):
+    """Fig. 11: Focused comparison — phase vs. component vs. hybrid.
+
+    Plots component-level and hybrid schemes over the Fig. 5 distance range.
+    """
+    fig, ax = plt.subplots(1, 1, figsize=(10, 7))
+    d_values = results['d_values']
+
+    # Combined styles
+    styles = {**SCHEME_STYLES, **COMPONENT_STYLES}
+
+    # Build focused plot order
+    plot_order = [
+        'upper_bound',
+        'pso_component',
+        'gwo_component',
+        'hybrid_component',
+        'hybrid_pso_pso_component',
+        'hybrid_pso_gwo_component',
+        'lower_bound',
+    ]
+
+    for scheme in plot_order:
+        if scheme in results and scheme in styles:
+            style = styles[scheme]
+            ms = 11 if scheme.startswith('hybrid') else 8
+            ax.plot(d_values, results[scheme],
+                    label=style['label'], color=style['color'],
+                    marker=style.get('marker', 'o'),
+                    linestyle=style['ls'],
+                    linewidth=style['lw'], markersize=ms, clip_on=False)
+
+    ax.set_xlim([d_values[0], d_values[-1]])
+    _setup_axes(ax,
+                xlabel='AP-user horizontal distance: $d$ (m)',
+                ylabel='Achievable rate (bits/s/Hz)',
+                title='Fig. 11: Phase-Level vs. Component-Level vs. Hybrid (N=40)')
+    ax.legend(fontsize=9, loc='upper left', framealpha=0.9, ncol=2)
     fig.tight_layout()
 
     if save_path:
