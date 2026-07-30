@@ -29,6 +29,8 @@ from algorithms.pso_component import pso_component_optimize
 from algorithms.apso_component import apso_component_optimize
 from algorithms.hybrid import (
     hybrid_phase_component_optimize,
+    hybrid_ao_pso_component_optimize,
+    hybrid_ao_gwo_component_optimize,
     hybrid_pso_pso_component_optimize,
     hybrid_pso_gwo_component_optimize,
 )
@@ -164,6 +166,16 @@ def _run_single_realization(N, d_horizontal, schemes, seed):
 
         elif scheme == 'hybrid_component':
             _, rate = hybrid_phase_component_optimize(
+                Phi, h_d, N, rng=s_rng)
+            results[scheme] = rate
+
+        elif scheme == 'hybrid_ao_pso_component':
+            _, rate = hybrid_ao_pso_component_optimize(
+                Phi, h_d, N, rng=s_rng)
+            results[scheme] = rate
+
+        elif scheme == 'hybrid_ao_gwo_component':
+            _, rate = hybrid_ao_gwo_component_optimize(
                 Phi, h_d, N, rng=s_rng)
             results[scheme] = rate
 
@@ -645,7 +657,8 @@ def run_simulation_fig11(num_realizations=NUM_REALIZATIONS, save_path=None,
     schemes = [
         'upper_bound',
         'pso_component', 'gwo_component',
-        'hybrid_component',
+        'hybrid_ao_pso_component',
+        'hybrid_ao_gwo_component',
         'hybrid_pso_pso_component',
         'hybrid_pso_gwo_component',
         'lower_bound',

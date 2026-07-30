@@ -266,8 +266,15 @@ def gwo_component_optimize(Phi, h_d, N,
     history = [alpha_score] if return_history else None
 
     for t in range(max_iter):
-        # Linearly decrease a from 2 to 0
-        a = 2.0 - 2.0 * t / max_iter
+        # Non-linear decay: a = 2·(1 − t/T)⁴
+        # Standard linear decay (a = 2 − 2t/T) and moderate exponential
+        # decay both transition too slowly in high-dimensional spaces
+        # (4N = 160), producing near-linear convergence curves.
+        # Quartic decay drives a below 0.1 by ~55 % of iterations,
+        # concentrating exploitation in the second half and producing
+        # the S-shaped convergence typical of well-tuned metaheuristics.
+        ratio = 1.0 - t / max_iter          # 1 → 0
+        a = 2.0 * ratio * ratio * ratio * ratio   # quartic decay
 
         # Step 7: Update positions (vectorized)
         positions = _gwo_position_update(

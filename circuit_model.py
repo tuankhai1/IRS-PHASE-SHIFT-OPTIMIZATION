@@ -2,24 +2,23 @@
 Circuit impedance model for IRS reflecting elements.
 
 Models each IRS element as a parallel resonant circuit with parameters:
-    L1 — coupling inductance
-    L2 — varactor series inductance
-    C  — varactor capacitance (tunable)
-    R  — varactor equivalent series resistance (ESR)
+    L1 - coupling inductance
+    L2 - varactor/package series inductance
+    C  - varactor capacitance (tunable)
+    R  - varactor equivalent series resistance (ESR)
 
 The equivalent impedance of the n-th IRS element is (Eq. 3):
-    Z_n = jωL₁(jωL₂ + 1/(jωC) + R) / (jωL₁ + jωL₂ + 1/(jωC) + R)
+    Z_n = jwL1(jwL2 + 1/(jwC) + R) / (jwL1 + jwL2 + 1/(jwC) + R)
 
 The reflection coefficient is (Eq. 4):
-    v_n = (Z_n - Z₀) / (Z_n + Z₀)
+    v_n = (Z_n - Z0) / (Z_n + Z0)
 
-Operating frequency: 5.8 GHz (ISM band).
-    Ref: ITU Radio Regulations Art. 5, Footnote 5.150;
-         C. Liaskos et al., "A New Wireless Communication Paradigm
-         through Software-Controlled Metasurfaces," IEEE Commun. Mag., 2018.
+Operating frequency: 5.8 GHz (ISM band), Z0 = 377 Ohm.
 
-Component ranges based on typical varactor-based IRS element designs:
-    Ref: Skyworks SMV1231-079LF datasheet; extended for broader coverage.
+Component bounds based on typical varactor-based IRS elements
+(Ref: Skyworks SMV1231-079LF datasheet; extended for design coverage):
+    L1 in [0.5, 5.0] nH, L2 in [0.1, 3.0] nH,
+    C in [0.1, 5.0] pF, R in [0.5, 5.0] Ohm.
 """
 
 import numpy as np

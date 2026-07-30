@@ -40,12 +40,16 @@ COMPONENT_STYLES = {
 
     'gwo_component':     {'label': 'GWO component-level',
                           'color': '#00ACC1', 'marker': 'H', 'ls': '-', 'lw': 2.2},
-    'hybrid_component':  {'label': 'Hybrid (AO+PSO) component',
+    'hybrid_component':  {'label': 'Hybrid AO-PSO component',
                           'color': '#FB8C00', 'marker': '*', 'ls': '-', 'lw': 2.8},
+    'hybrid_ao_pso_component': {'label': 'Hybrid AO-PSO component',
+                                'color': '#FB8C00', 'marker': '*', 'ls': '-', 'lw': 2.8},
+    'hybrid_ao_gwo_component': {'label': 'Hybrid AO-GWO component',
+                                'color': '#43A047', 'marker': 'X', 'ls': '-', 'lw': 2.8},
     'hybrid_pso_pso_component': {'label': 'Hybrid PSO-PSO component',
                                  'color': '#1E88E5', 'marker': 'P', 'ls': '--', 'lw': 2.4},
     'hybrid_pso_gwo_component': {'label': 'Hybrid PSO-GWO component',
-                                 'color': '#43A047', 'marker': 'X', 'ls': '-.', 'lw': 2.4},
+                                 'color': '#C2185B', 'marker': 'D', 'ls': '-.', 'lw': 2.4},
 }
 
 # ============================================================
@@ -327,9 +331,11 @@ def plot_fig11(results, save_path=None):
         'upper_bound',
         'pso_component',
         'gwo_component',
-        'hybrid_component',
+        'hybrid_ao_pso_component',
+        'hybrid_ao_gwo_component',
         'hybrid_pso_pso_component',
         'hybrid_pso_gwo_component',
+        'hybrid_component',
         'lower_bound',
     ]
 

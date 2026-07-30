@@ -382,6 +382,55 @@ def hybrid_phase_component_optimize(
     return gbest_pos, gbest_val
 
 
+def hybrid_ao_pso_component_optimize(*args, **kwargs):
+    """
+    Hybrid optimizer: phase-level AO -> warm-started component-level PSO.
+
+    This is the explicit AO-PSO name for the original
+    ``hybrid_phase_component_optimize`` implementation.
+    """
+    return hybrid_phase_component_optimize(*args, **kwargs)
+
+
+def hybrid_ao_gwo_component_optimize(
+    Phi, h_d, N,
+    pop_size=COMP_GWO_POP_SIZE,
+    max_iter=COMP_GWO_MAX_ITER,
+    omega=CIRCUIT_OMEGA, Z0_val=Z0,
+    warm_ratio=0.5,
+    rng=None, return_history=False,
+):
+    """
+    Hybrid optimizer: phase-level AO -> warm-started component-level GWO.
+
+    AO first finds practical phase shifts. The resulting reflection vector is
+    inverse-mapped to circuit components, then used to initialize part of the
+    GWO pack before component-level refinement.
+    """
+    if rng is None:
+        rng = np.random.default_rng()
+
+    theta_opt, _ = ao_optimize(
+        Phi, h_d, N, method='prop1', use_practical=True,
+        rng=np.random.default_rng(rng.integers(0, 2**31))
+    )
+    x_warm = _find_components_for_phases(
+        theta_opt, N,
+        rng=np.random.default_rng(rng.integers(0, 2**31)),
+        omega=omega, Z0_val=Z0_val
+    )
+
+    return _warm_started_component_gwo(
+        Phi, h_d, N, x_warm,
+        pop_size=pop_size,
+        max_iter=max_iter,
+        omega=omega, Z0_val=Z0_val,
+        warm_ratio=warm_ratio,
+        rng=rng,
+        return_history=return_history,
+    )
+
+
 def hybrid_pso_pso_component_optimize(
     Phi, h_d, N,
     pop_size=COMP_PSO_POP_SIZE,

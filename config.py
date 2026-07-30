@@ -107,17 +107,17 @@ C_BOUNDS  = (0.1e-12, 5.0e-12) # Varactor capacitance (F)
 R_BOUNDS  = (0.5, 5.0)        # Varactor series resistance (Ω)
 
 # --- Component-level PSO ---
-COMP_PSO_POP_SIZE = 100        # Larger population for 4N-dim space
-COMP_PSO_MAX_ITER = 800        # More iterations for convergence
+COMP_PSO_POP_SIZE = 200        # Larger population for 4N-dim space
+COMP_PSO_MAX_ITER = 2000       # More iterations for convergence
 
 # --- Component-level Adaptive PSO (APSO) ---
 # Ref: Y. Shi, R. Eberhart, "A modified particle swarm optimizer,"
 #      Proc. IEEE ICEC, pp. 69-73, 1998.
 COMP_APSO_POP_SIZE = 100
-COMP_APSO_MAX_ITER = 800       # More iterations for convergence
+COMP_APSO_MAX_ITER = 2000      # More iterations for convergence
 COMP_APSO_W_MAX = 0.9         # Initial inertia (exploration)
 COMP_APSO_W_MIN = 0.4         # Final inertia (exploitation)
 
 # --- Component-level GWO ---
-COMP_GWO_POP_SIZE = 100
-COMP_GWO_MAX_ITER = 800        # More iterations for convergence
+COMP_GWO_POP_SIZE = 200            # Increased from 100 to improve exploration
+COMP_GWO_MAX_ITER = 2000       # More iterations for convergence
