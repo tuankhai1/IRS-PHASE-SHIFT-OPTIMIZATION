@@ -373,12 +373,12 @@ def build_deck():
         [("GWO N=80", "4.13", CYAN), ("Upper", "5.00", RED)]
     )
     add_result_slide(
-        prs, 12, "Fig. 10: GWO hội tụ tới nghiệm tốt hơn PSO/APSO",
+        prs, 12, "Fig. 10: GWO hội tụ tới nghiệm tốt hơn PSO",
         "fig10_convergence.png",
         "Đường hội tụ cho thấy GWO tiếp tục cải thiện sau khi PSO gần bão hòa.",
         [
             "PSO tăng nhanh nhưng chững lại sớm hơn.",
-            "APSO không vượt PSO trong cấu hình này.",
+            "GWO tiếp tục cải thiện khi PSO đã bão hòa.",
             "GWO đạt giá trị cuối cao nhất."
         ],
         [("GWO final", "2.81", CYAN), ("PSO final", "2.48", PURPLE)]

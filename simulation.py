@@ -23,10 +23,8 @@ from channel_model import generate_channels
 from objective import compute_channel_gain, compute_rate, compute_lower_bound_rate
 from algorithms.ao import ao_optimize
 from algorithms.pso import pso_optimize
-from algorithms.apso import apso_optimize
 from algorithms.gwo import gwo_optimize, gwo_component_optimize
 from algorithms.pso_component import pso_component_optimize
-from algorithms.apso_component import apso_component_optimize
 from algorithms.hybrid import (
     hybrid_phase_component_optimize,
     hybrid_ao_pso_component_optimize,
@@ -51,7 +49,6 @@ PAPER_CONTINUOUS_SCHEMES = [
 
 METAHEURISTIC_COMPARISON_SCHEMES = [
     'pso',
-    'apso',
     'gwo',
 ]
 
@@ -61,7 +58,6 @@ CONTINUOUS_COMPARISON_SCHEMES = (
 
 COMPONENT_COMPARISON_SCHEMES = [
     'pso_component',
-    'apso_component',
     'gwo_component',
 ]
 
@@ -141,10 +137,6 @@ def _run_single_realization(N, d_horizontal, schemes, seed):
                                    rng=s_rng)
             results[scheme] = compute_rate(gain)
 
-        elif scheme == 'apso':
-            _, gain = apso_optimize(Phi, h_d, N, use_practical=True,
-                                    rng=s_rng)
-            results[scheme] = compute_rate(gain)
 
         elif scheme == 'gwo':
             _, gain = gwo_optimize(Phi, h_d, N, use_practical=True,
@@ -156,9 +148,7 @@ def _run_single_realization(N, d_horizontal, schemes, seed):
             _, rate = pso_component_optimize(Phi, h_d, N, rng=s_rng)
             results[scheme] = rate
 
-        elif scheme == 'apso_component':
-            _, rate = apso_component_optimize(Phi, h_d, N, rng=s_rng)
-            results[scheme] = rate
+
 
         elif scheme == 'gwo_component':
             _, rate = gwo_component_optimize(Phi, h_d, N, rng=s_rng)
@@ -358,9 +348,7 @@ def _convergence_worker(args):
         Phi, h_d, N, rng=_rng_for(seed, 'pso_comp'), return_history=True)
     histories['pso_component'] = hist
 
-    _, _, hist = apso_component_optimize(
-        Phi, h_d, N, rng=_rng_for(seed, 'apso_comp'), return_history=True)
-    histories['apso_component'] = hist
+
 
     _, _, hist = gwo_component_optimize(
         Phi, h_d, N, rng=_rng_for(seed, 'gwo_comp'), return_history=True)
@@ -503,7 +491,7 @@ def run_simulation_fig8(num_realizations=NUM_REALIZATIONS, save_path=None,
     d_values = np.arange(480, 501, 2)
     schemes = [
         'upper_bound', 'ao_practical_prop1',
-        'pso_component', 'apso_component', 'gwo_component',
+        'pso_component', 'gwo_component',
         'lower_bound',
     ]
 
@@ -538,7 +526,7 @@ def run_simulation_fig9(num_realizations=NUM_REALIZATIONS, save_path=None,
     N_values = np.array([10, 20, 30, 40, 50, 60, 70, 80])
     schemes = [
         'upper_bound', 'ao_practical_prop1',
-        'pso_component', 'apso_component', 'gwo_component',
+        'pso_component', 'gwo_component',
         'lower_bound',
     ]
 
@@ -573,7 +561,7 @@ def run_simulation_fig10(num_realizations=20, save_path=None, seed=SEED):
     """
     N = N_DEFAULT
     d_horizontal = 498
-    schemes = ['pso_component', 'apso_component', 'gwo_component']
+    schemes = ['pso_component', 'gwo_component']
 
     master_rng = np.random.default_rng(seed + 5)
 
