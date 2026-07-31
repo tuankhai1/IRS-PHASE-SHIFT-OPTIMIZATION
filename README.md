@@ -360,7 +360,7 @@ The repository is structured as follows to keep the simulation pipeline modular:
 |   `-- hybrid.py                 # Hybrid phase-component optimization
 |-- results/                      # Generated figures, npz files, and runtime tables
 |-- report/                       # LaTeX research report with full analysis
-|-- assets/                       # Optional published figures
+|-- vendor/                       # Vendored Python dependencies (pptx, lxml, PIL)
 |-- PSO_Report.pdf                # Compiled PSO report
 `-- PhaseShift_Model.pdf          # Reference paper
 ```
