@@ -323,10 +323,15 @@ Detailed result table, in bit/s/Hz (N = 40, GWO component-level):
 graph TD
     A[main.py] -->|Configures & runs| B(simulation.py)
     A -->|Fixed-component ablation| B2(fixed_component_simulation.py)
+    A -->|Plots Fig. 5-11| P(plot_results.py)
+    A -->|Plots Fig. 12| P2(plot_fixed_component.py)
 
     B -->|Generates channels| C(channel_model.py)
     B -->|Evaluates rate/gain| D(objective.py)
     B -->|Optimizes phase shifts| E((algorithms/))
+
+    B2 -->|Generates channels| C
+    B2 -->|Evaluates rate/gain| D
 
     D -->|Applies reflection physics| F(phase_shift_model.py)
     D -->|Circuit impedance model| F2(circuit_model.py)
@@ -336,6 +341,9 @@ graph TD
     E -->|Component-Level PSO| H2(pso_component.py)
     E -->|Grey Wolf Optimizer| I(gwo.py)
     E -->|Hybrid Phase-Component| J(hybrid.py)
+
+    S1[scripts/create_irs_deck.py] -.->|Reads results| R[(results/)]
+    S1 -.->|Generates slides| O[(outputs/)]
 ```
 
 The repository is structured as follows to keep the simulation pipeline modular:
@@ -344,23 +352,29 @@ The repository is structured as follows to keep the simulation pipeline modular:
 .
 |-- config.py                     # System parameters and optimizer settings
 |-- main.py                       # CLI entry point for simulation figures
-|-- simulation.py                 # Experiment orchestration (Fig. 5–11)
+|-- simulation.py                 # Experiment orchestration (Fig. 5-11)
 |-- fixed_component_simulation.py # Fixed-component ablation (Fig. 12)
-|-- plot_results.py               # Simulation plotting functions (Fig. 5–11)
+|-- plot_results.py               # Simulation plotting functions (Fig. 5-11)
 |-- plot_fixed_component.py       # Ablation plotting (Fig. 12)
 |-- channel_model.py              # Wireless channel generation
 |-- objective.py                  # Achievable-rate objective functions
-|-- phase_shift_model.py          # Practical IRS reflection model (β–θ)
-|-- circuit_model.py              # Circuit impedance model (L₁, L₂, C, R → v_n)
+|-- phase_shift_model.py          # Practical IRS reflection model
+|-- circuit_model.py              # Circuit impedance model (L1, L2, C, R -> v_n)
+|-- requirements.txt              # Python dependencies
 |-- algorithms/
 |   |-- ao.py                     # Alternating Optimization baseline
 |   |-- pso.py                    # Phase-level PSO
 |   |-- pso_component.py          # Component-level PSO (4N dimensions)
 |   |-- gwo.py                    # Grey Wolf Optimizer (phase + component)
 |   `-- hybrid.py                 # Hybrid phase-component optimization
+|-- scripts/
+|   |-- create_irs_deck.py        # Generate PowerPoint presentation from results
+|   `-- find_gwo_config.py        # GWO hyperparameter search utility
 |-- results/                      # Generated figures, npz files, and runtime tables
+|-- outputs/                      # Generated presentation slides
 |-- report/                       # LaTeX research report with full analysis
 |-- vendor/                       # Vendored Python dependencies (pptx, lxml, PIL)
+|-- .github/workflows/ci.yml      # CI smoke test
 |-- PSO_Report.pdf                # Compiled PSO report
 `-- PhaseShift_Model.pdf          # Reference paper
 ```
