@@ -26,3 +26,6 @@ tectonic_bin/
 *.swp
 Thumbs.db
 .DS_Store
+
+# Reports
+report/
