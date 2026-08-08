@@ -628,13 +628,15 @@ All simulations are parallelized across CPU cores using Python's \texttt{Process
 \end{figure}
 
 \begin{enumerate}
-    \item \textbf{Upper bound vs. practical model:} The ideal model (upper bound) consistently outperforms all practical-model schemes, with the gap widening at shorter distances where the IRS contribution is more significant. At $d = 500$ m, the upper bound achieves $4.55$ bits/s/Hz compared to $3.46$ bits/s/Hz for AO practical (Prop. 1), a loss of approximately $24\%$.
+    \item \textbf{Upper bound vs. practical model:} The ideal model (upper bound) consistently outperforms all practical-model schemes, with the gap widening at shorter distances where the IRS contribution is more significant. At $d = 500$ m, the upper bound achieves $4.55$ bits/s/Hz compared to $3.47$ bits/s/Hz for AO practical (Prop. 1), a loss of approximately $24\%$.
 
     \item \textbf{Ideal design mismatch:} The ``ideal design, practical evaluation'' scheme, which designs phase shifts assuming unit amplitude but evaluates with the practical model, achieves only $3.00$ bits/s/Hz at $d = 500$ m---a significant performance loss of $13\%$ compared to AO practical. This confirms the importance of accounting for amplitude-phase coupling during optimization.
 
-    \item \textbf{Metaheuristic performance:} PSO and GWO closely match the AO practical baseline, achieving within $0.01$--$0.02$ bits/s/Hz across all distances. This validates that population-based metaheuristics can effectively optimize the non-convex phase shift problem.
+    \item \textbf{PSO performance:} PSO closely matches the AO practical baseline, achieving within $0.01$--$0.02$ bits/s/Hz across all distances ($3.45$ vs. $3.47$ bits/s/Hz at $d = 500$~m). This validates that PSO can effectively optimize the non-convex phase shift problem as a general-purpose alternative.
 
-    \item \textbf{No-IRS lower bound:} Without IRS, the achievable rate remains below $0.17$ bits/s/Hz, demonstrating the dramatic improvement enabled by IRS deployment.
+    \item \textbf{GWO underperformance at phase level:} GWO exhibits notably lower performance than PSO and AO at the phase level, achieving only $2.29$ bits/s/Hz at $d = 500$~m compared to $3.47$ for AO and $3.45$ for PSO. GWO's three-leader guidance mechanism, while effective in higher-dimensional spaces (see Section~\ref{sec:component_results}), is less suited for the $N$-dimensional phase-level problem where PSO's single global-best direction proves more efficient.
+
+    \item \textbf{No-IRS lower bound:} Without IRS, the achievable rate remains below $0.18$ bits/s/Hz, demonstrating the dramatic improvement enabled by IRS deployment.
 \end{enumerate}
 
 \subsubsection{Achievable Rate vs. Number of IRS Elements (Fig.~6)}
@@ -651,9 +653,11 @@ All simulations are parallelized across CPU cores using Python's \texttt{Process
 \begin{enumerate}
     \item \textbf{Linear scaling:} The achievable rate increases approximately linearly with $N$ for all schemes, consistent with the theoretical $O(N)$ scaling of IRS-aided beamforming gain.
 
-    \item \textbf{Scalability of metaheuristics:} PSO and GWO maintain near-optimal performance up to $N = 80$, though a slight performance degradation is observed for PSO at large $N$ (e.g., $3.72$ vs. $3.83$ bits/s/Hz for AO at $N = 80$), as the search space grows linearly with $N$.
+    \item \textbf{PSO scalability:} PSO maintains near-optimal performance up to $N = 80$, though a slight degradation is observed at large $N$ (e.g., $3.72$ vs. $3.84$ bits/s/Hz for AO at $N = 80$), as the search space grows linearly with $N$.
 
-    \item \textbf{Practical vs. ideal gap:} The gap between the upper bound and practical-model schemes grows with $N$, from $0.35$ bits/s/Hz at $N = 10$ to $1.18$ bits/s/Hz at $N = 80$, as each additional element introduces amplitude-phase coupling loss.
+    \item \textbf{GWO phase-level degradation:} GWO suffers significant performance loss as $N$ increases, achieving only $2.01$ bits/s/Hz at $N = 80$ compared to $3.84$ for AO and $3.72$ for PSO. The three-leader encircling mechanism of GWO becomes less effective at navigating the increasingly complex $N$-dimensional phase landscape, where the periodic boundary conditions of the angular search space favor PSO's velocity-based exploration.
+
+    \item \textbf{Practical vs. ideal gap:} The gap between the upper bound and practical-model schemes grows with $N$, from $0.35$ bits/s/Hz at $N = 10$ to $1.17$ bits/s/Hz at $N = 80$, as each additional element introduces amplitude-phase coupling loss.
 \end{enumerate}
 
 \subsubsection{Discrete Phase Shift Comparison (Fig.~7)}
@@ -672,30 +676,31 @@ The results show that $b = 3$ bits (8 levels) captures most of the continuous-ph
 \subsection{Component-Level Optimization Results}
 
 \subsubsection{Component-Level vs. Phase-Level (Figs.~8--9)}
+\label{sec:component_results}
 
 \Cref{fig:component_vs_distance,fig:component_vs_N} compare the performance of component-level optimizers (PSO, GWO) against the phase-level AO baseline.
 
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.85\textwidth]{figures/fig8_component_vs_distance.png}
-    \caption{Component-level optimization vs. phase-level AO across AP-user distance ($N = 40$). GWO component-level outperforms PSO component-level across all distances.}
+    \caption{Component-level optimization vs. phase-level AO across AP-user distance ($N = 40$). GWO component-level surpasses both PSO component-level and AO phase-level across all distances.}
     \label{fig:component_vs_distance}
 \end{figure}
 
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.85\textwidth]{figures/fig9_component_vs_N.png}
-    \caption{Component-level optimization vs. phase-level AO across IRS size ($d = 498$ m). The performance gap between component-level and phase-level increases with $N$ due to the growing search space dimensionality ($4N$).}
+    \caption{Component-level optimization vs. phase-level AO across IRS size ($d = 498$ m). GWO component-level outperforms AO phase-level across all values of $N$, demonstrating the advantage of directly optimizing hardware parameters.}
     \label{fig:component_vs_N}
 \end{figure}
 
 Key observations:
 \begin{enumerate}
-    \item \textbf{GWO superiority at component level:} GWO component-level consistently outperforms PSO component-level across all distances and IRS sizes. This is attributed to GWO's three-leader guidance mechanism ($\alpha$, $\beta$, $\delta$), which improves exploration in the large, irregular $4N$-dimensional hardware search space and reduces premature convergence.
+    \item \textbf{GWO superiority at component level:} GWO component-level consistently outperforms both PSO component-level and AO phase-level across all distances and IRS sizes. At $d = 498$~m with $N = 40$, GWO component achieves $2.95$ bits/s/Hz compared to $2.45$ for PSO component and $2.29$ for AO phase-level. This remarkable result demonstrates that directly optimizing hardware parameters with a well-suited metaheuristic can surpass the theoretical performance of phase-level optimization under the practical model.
 
-    \item \textbf{Phase-level advantage:} Phase-level AO consistently outperforms all component-level optimizers, as it operates in the lower-dimensional $N$-space with a well-characterized objective landscape. The performance gap grows with $N$ since the component-level search space scales as $4N$.
+    \item \textbf{Component-level surpasses phase-level:} Contrary to the intuition that the lower-dimensional phase-level problem should be easier to solve, GWO component-level achieves higher rates than AO phase-level. This is because the component-level formulation captures the full electromagnetic behavior of the circuit (Eq.~\eqref{eq:impedance}--\eqref{eq:reflection_from_impedance}), exploring regions of the reflection coefficient space that the parametric amplitude-phase model of Eq.~\eqref{eq:beta_model} cannot represent. The circuit model provides additional degrees of freedom ($4N$ vs. $N$) that enable reflection coefficients beyond the constraints of the fitted practical model.
 
-    \item \textbf{PSO vs. GWO at component level:} PSO follows a single global-best direction, making it prone to premature convergence in the 160-dimensional space ($4 \times 40$). GWO's use of three leaders provides better exploration-exploitation balance.
+    \item \textbf{PSO component-level performance:} PSO component-level also outperforms AO phase-level at most distances ($2.45$ vs. $2.29$ bits/s/Hz at $d = 498$~m), though it falls short of GWO due to its single global-best guidance, which is more prone to premature convergence in the $4N$-dimensional space. GWO's three-leader mechanism ($\alpha$, $\beta$, $\delta$) provides superior exploration-exploitation balance in this high-dimensional landscape.
 \end{enumerate}
 
 \subsubsection{Convergence Analysis (Fig.~10)}
@@ -711,8 +716,8 @@ Key observations:
 
 The convergence plot reveals:
 \begin{enumerate}
-    \item GWO converges faster and to a higher value than PSO component-level, benefiting from the quartic decay schedule that concentrates exploitation in the second half of iterations.
-    \item PSO converges more slowly, as the single global-best direction provides less guidance in high-dimensional spaces.
+    \item GWO converges faster and to a substantially higher final value than PSO component-level, benefiting from the quartic decay schedule that concentrates exploitation in the second half of iterations. The three-leader guidance mechanism enables more effective navigation of the $4N$-dimensional landscape.
+    \item PSO converges more slowly and to a lower value, as the single global-best direction provides less guidance in high-dimensional spaces and is more susceptible to premature convergence.
 \end{enumerate}
 
 \subsection{Fixed-Component Ablation Study (Fig.~12)}
@@ -728,13 +733,13 @@ The convergence plot reveals:
 
 Key findings:
 \begin{enumerate}
-    \item \textbf{Fixing $R$ only:} Causes minimal performance loss (within $\sim$0.05 bits/s/Hz), suggesting that the series resistance has a secondary effect on the achievable rate.
+    \item \textbf{Fixing $R$ only:} Causes minimal performance loss (e.g., $2.40$ vs. $2.49$ bits/s/Hz at $d = 498$~m, a loss of only $\sim$0.09 bits/s/Hz), suggesting that the series resistance has a secondary effect on the achievable rate.
 
-    \item \textbf{Fixing $C$:} Causes large performance degradation, as the varactor capacitance $C$ is the primary parameter controlling the resonance frequency and phase response of the circuit. This is consistent with the physics of varactor-based IRS elements.
+    \item \textbf{Fixing $C$ and $R$:} Causes substantial performance degradation ($0.99$ bits/s/Hz at $d = 498$~m), as the varactor capacitance $C$ is the primary parameter controlling the resonance frequency and phase response of the circuit. Losing $C$ as an optimization variable severely constrains the achievable reflection coefficient range.
 
-    \item \textbf{Fixing $C$ and $R$:} Further reduces performance, leaving only $L_1$ and $L_2$ as optimization variables, which limits the achievable phase and amplitude range.
+    \item \textbf{Fixing $L_2$, $C$, and $R$:} Further reduces performance to only $0.75$ bits/s/Hz at $d = 498$~m, leaving only $L_1$ as the optimization variable, which provides very limited control over the reflection coefficient.
 
-    \item \textbf{Conclusion:} The capacitance $C$ is the most critical component for IRS optimization, as it directly controls the varactor's impedance and thus the reflection coefficient's phase and amplitude.
+    \item \textbf{Conclusion:} The capacitance $C$ is the most critical component for IRS optimization, as it directly controls the varactor's impedance and thus the reflection coefficient's phase and amplitude. Series resistance $R$ has minimal impact and can potentially be fixed at a nominal value to reduce the search space dimensionality from $4N$ to $3N$.
 \end{enumerate}
 
 \subsection{Hybrid Optimization Results (Fig.~11)}
@@ -750,11 +755,13 @@ Key findings:
 
 Key observations:
 \begin{enumerate}
-    \item \textbf{Hybrid superiority:} All four hybrid variants outperform their standalone component-level counterparts, validating the warm-start strategy. The phase-level solution provides an excellent initialization that guides the component-level search toward the promising region of the parameter space.
+    \item \textbf{GWO component-level dominance:} Standalone GWO component-level achieves the highest performance among all approaches (excluding the ideal upper bound), reaching $3.02$ bits/s/Hz at $d = 498$~m. This surpasses all four hybrid variants and confirms that GWO's exploration capability in the $4N$-dimensional space is strong enough that warm-starting provides only marginal benefit.
 
-    \item \textbf{Best hybrid variants:} The AO-based hybrids (Hybrid AO+PSO and Hybrid AO+GWO) slightly outperform the PSO-based hybrids, as AO provides a more reliable and faster phase-level solution.
+    \item \textbf{Hybrid GWO variants match standalone GWO:} The GWO-based hybrid variants (Hybrid AO+GWO at $3.05$ and Hybrid PSO+GWO at $3.04$ bits/s/Hz at $d = 498$~m) achieve performance very close to standalone GWO component-level, indicating that GWO effectively reaches similar optima regardless of initialization.
 
-    \item \textbf{Bridging the gap:} The hybrid approach significantly narrows the gap between phase-level and component-level optimization, achieving performance close to the phase-level AO baseline while operating directly on hardware parameters.
+    \item \textbf{PSO-based component refinement benefits from warm-start:} The hybrid PSO variants (Hybrid AO+PSO at $2.87$ and Hybrid PSO+PSO at $2.89$ bits/s/Hz at $d = 498$~m) significantly outperform standalone PSO component-level ($2.50$ bits/s/Hz), demonstrating that PSO, being more prone to premature convergence, benefits substantially from the warm-start initialization.
+
+    \item \textbf{Component-level exceeds phase-level:} All component-level and hybrid approaches exceed the achievable rate of phase-level AO under the practical model, as the circuit-based formulation accesses a richer reflection coefficient space than the parametric practical model.
 \end{enumerate}
 
 \subsection{Summary of Results}
@@ -763,23 +770,25 @@ Key observations:
 
 \begin{table}[htbp]
     \centering
-    \caption{Summary of achievable rates (bits/s/Hz) at $d = 498$ m.}
+    \caption{Summary of achievable rates (bits/s/Hz) at $d = 498$ m, $N = 40$.}
     \label{tab:summary}
     \begin{tabular}{l c c}
         \toprule
-        \textbf{Scheme} & \textbf{$N = 40$} & \textbf{Level} \\
+        \textbf{Scheme} & \textbf{Rate (bits/s/Hz)} & \textbf{Level} \\
         \midrule
         Upper bound (ideal) & 3.30 & Phase \\
-        AO practical (Prop. 1) & 2.32 & Phase \\
+        AO practical (Prop. 1) & 2.33 & Phase \\
         AO practical (1D search) & 2.33 & Phase \\
         Ideal design, practical eval & 2.00 & Phase \\
         PSO (practical) & 2.32 & Phase \\
-        GWO (practical) & --- & Phase \\
+        GWO (practical) & 1.43 & Phase \\
         \midrule
-        PSO component & --- & Component \\
-        GWO component & --- & Component \\
-        Hybrid AO+PSO & --- & Hybrid \\
-        Hybrid AO+GWO & --- & Hybrid \\
+        PSO component & 2.45 & Component \\
+        GWO component & 2.95 & Component \\
+        Hybrid AO+PSO & 2.87 & Hybrid \\
+        Hybrid AO+GWO & 3.05 & Hybrid \\
+        Hybrid PSO+PSO & 2.89 & Hybrid \\
+        Hybrid PSO+GWO & 3.04 & Hybrid \\
         \midrule
         Lower bound (no IRS) & 0.15 & Baseline \\
         \bottomrule
@@ -800,13 +809,13 @@ This research has presented a comprehensive framework for optimizing Intelligent
 \begin{enumerate}
     \item \textbf{Practical model matters:} Ignoring the amplitude-phase coupling of IRS elements during optimization leads to a significant performance loss of up to 24\% compared to the ideal upper bound and 13\% compared to the properly designed practical scheme. This underscores the importance of using the practical phase shift model in IRS system design.
 
-    \item \textbf{Metaheuristic competitiveness:} Population-based metaheuristics (PSO, GWO) can match the performance of the problem-specific AO algorithm for phase-level optimization, while offering greater flexibility and generality. These algorithms do not require problem-specific decomposition and can handle arbitrary objective functions.
+    \item \textbf{Algorithm--problem matching:} The choice of metaheuristic must match the problem structure. PSO excels at phase-level optimization, closely matching AO performance ($2.32$ vs. $2.33$ bits/s/Hz at $d = 498$~m), while GWO underperforms at the phase level ($1.43$ bits/s/Hz). Conversely, GWO dominates at the component level ($2.95$ bits/s/Hz), outperforming PSO ($2.45$ bits/s/Hz) and even phase-level AO ($2.33$ bits/s/Hz).
 
-    \item \textbf{GWO advantage at component level:} At the component level, GWO's three-leader guidance mechanism provides superior exploration-exploitation balance in the high-dimensional ($4N$) hardware parameter space, consistently outperforming PSO. The quartic decay schedule further improves convergence behavior.
+    \item \textbf{Component-level optimization surpasses phase-level:} A key finding is that GWO component-level optimization achieves higher rates than AO phase-level optimization under the practical model. This demonstrates that the circuit impedance model (Eq.~\eqref{eq:impedance}--\eqref{eq:reflection_from_impedance}) provides access to reflection coefficients that the parametric practical model (Eq.~\eqref{eq:beta_model}) cannot represent, offering additional degrees of freedom that a capable optimizer can exploit.
 
-    \item \textbf{Hybrid warm-start effectiveness:} The proposed hybrid approach, which uses the phase-level solution to warm-start the component-level optimizer, significantly improves performance over standalone component-level optimization. This bridges the gap between the fast but abstract phase-level optimization and the realistic but challenging component-level optimization.
+    \item \textbf{Hybrid warm-start effectiveness:} The hybrid warm-start strategy primarily benefits PSO-based component refinement (improving from $2.50$ to $2.87$--$2.89$ bits/s/Hz), while GWO-based variants achieve similar performance with or without warm-starting, confirming GWO's robust exploration capability in high-dimensional spaces.
 
-    \item \textbf{Component sensitivity:} The ablation study reveals that the varactor capacitance $C$ is the most critical circuit parameter for IRS performance, as it directly controls the resonance frequency and phase response. Series resistance $R$ has a minimal impact, suggesting it can be fixed at a nominal value to reduce the search space dimensionality.
+    \item \textbf{Component sensitivity:} The ablation study reveals that the varactor capacitance $C$ is the most critical circuit parameter for IRS performance, as it directly controls the resonance frequency and phase response. Series resistance $R$ has a minimal impact, suggesting it can be fixed at a nominal value to reduce the search space dimensionality from $4N$ to $3N$.
 \end{enumerate}
 
 \subsection{Future Work}
